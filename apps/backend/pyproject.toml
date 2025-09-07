@@ -1,24 +1,14 @@
 [project]
-name = "calendar-backend"
+name = "backend"
 version = "0.1.0"
-description = "AI Calendar Assistant Backend"
+description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "truongluan1202", email = "tdtruongluan@gmail.com" }
-]
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.116.1",
     "pydantic>=2.11.7",
     "uvicorn[standard]>=0.35.0",
 ]
-
-[project.scripts]
-calendar-backend = "calendar_backend:main"
-
-[build-system]
-requires = ["uv_build>=0.8.15,<0.9.0"]
-build-backend = "uv_build"
 
 [dependency-groups]
 dev = [

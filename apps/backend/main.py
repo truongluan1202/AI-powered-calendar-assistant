@@ -1,19 +1,22 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-app = FastAPI(title="AI Calendar Backend")
+app = FastAPI(title="AI Calendar Backend (dev)")
 
-ALLOWED_ORIGINS = ["http://localhost:3000"]  # add your Vercel URL later
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class EchoIn(BaseModel):
+    message: str
+
+
+class EchoOut(BaseModel):
+    echoed: str
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/echo", response_model=EchoOut)
+def echo(body: EchoIn):
+    return {"echoed": body.message}
