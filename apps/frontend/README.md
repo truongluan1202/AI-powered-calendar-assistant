@@ -1,3 +1,20 @@
+## Dev quickstart
+
+Backend (FastAPI):
+
+1. In another terminal:
+   - `cd apps/backend`
+   - `uvicorn main:app --reload --port 8000`
+
+Frontend (Next.js):
+
+1. `cd apps/frontend`
+2. Create `.env.local` with:
+   - `NEXT_PUBLIC_BACKEND_URL=http://localhost:8000`
+3. `pnpm dev`
+
+Open http://localhost:3000 to test health, echo, and AI suggest calls.
+
 # Create T3 App
 
 This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
