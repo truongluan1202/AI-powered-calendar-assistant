@@ -1,7 +1,6 @@
 "use client";
 
-import { signIn, signOut, useSession } from "next-auth/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ModelKey = "openai" | "gemini" | "claude";
 
@@ -10,7 +9,6 @@ function useBackendBaseUrl() {
 }
 
 export default function ChatPage() {
-  const { data: session, status } = useSession();
   const baseUrl = useBackendBaseUrl();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<
@@ -32,7 +30,7 @@ export default function ChatPage() {
       };
       setMessages(data2.messages);
     };
-    bootstrap();
+    void bootstrap();
   }, [baseUrl]);
 
   useEffect(() => {
@@ -72,31 +70,6 @@ export default function ChatPage() {
         <h1 style={{ fontSize: 22, fontWeight: 700, marginRight: "auto" }}>
           Chat with your calendar
         </h1>
-        {status === "authenticated" ? (
-          <button
-            onClick={() => signOut()}
-            style={{
-              padding: "6px 10px",
-              borderRadius: 8,
-              background: "#ef4444",
-              color: "white",
-            }}
-          >
-            Sign out
-          </button>
-        ) : (
-          <button
-            onClick={() => signIn("google")}
-            style={{
-              padding: "6px 10px",
-              borderRadius: 8,
-              background: "#111",
-              color: "white",
-            }}
-          >
-            Sign in with Google
-          </button>
-        )}
         <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span>Model</span>
           <select
@@ -150,7 +123,7 @@ export default function ChatPage() {
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              send();
+              void send();
             }
           }}
           style={{
@@ -161,7 +134,7 @@ export default function ChatPage() {
           }}
         />
         <button
-          onClick={send}
+          onClick={() => void send()}
           disabled={!sessionId || loading}
           style={{
             padding: "10px 14px",
@@ -173,25 +146,7 @@ export default function ChatPage() {
           Send
         </button>
       </div>
-      {status === "authenticated" && (
-        <div style={{ marginTop: 14 }}>
-          <button
-            onClick={async () => {
-              const res = await fetch("/api/google/calendars");
-              const data = await res.json();
-              alert(`Calendars: ${JSON.stringify(data)}`);
-            }}
-            style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              background: "#2563eb",
-              color: "white",
-            }}
-          >
-            List Google Calendars
-          </button>
-        </div>
-      )}
+      {/* Calendar integration removed (no auth backend). */}
     </main>
   );
 }
