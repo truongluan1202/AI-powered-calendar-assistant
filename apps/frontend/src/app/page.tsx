@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 function useBackendBaseUrl() {
   return process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
@@ -23,15 +23,15 @@ export default function HomePage() {
       setLoadingHealth(true);
       try {
         const res = await fetch(`${baseUrl}/health`);
-        const data = await res.json();
+        const data = (await res.json()) as { status?: string };
         setHealth(data.status ?? "unknown");
-      } catch (err) {
+      } catch {
         setHealth("error");
       } finally {
         setLoadingHealth(false);
       }
     };
-    fetchHealth();
+    void fetchHealth();
   }, [baseUrl]);
 
   const doEcho = async () => {
@@ -42,9 +42,9 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: echoInput }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { echoed?: string };
       setEchoResponse(data.echoed ?? JSON.stringify(data));
-    } catch (err) {
+    } catch {
       setEchoResponse("request failed");
     } finally {
       setLoadingEcho(false);
@@ -59,9 +59,9 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ context }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { suggestion?: string };
       setSuggestion(data.suggestion ?? JSON.stringify(data));
-    } catch (err) {
+    } catch {
       setSuggestion("request failed");
     } finally {
       setLoadingSuggest(false);

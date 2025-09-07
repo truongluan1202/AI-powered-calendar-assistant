@@ -15,6 +15,15 @@ Frontend (Next.js):
 
 Open http://localhost:3000 to test health, echo, and AI suggest calls.
 
+Chat page: open http://localhost:3000/chat to use the conversational UI and select model.
+
+Auth env:
+
+- `GOOGLE_CLIENT_ID=...`
+- `GOOGLE_CLIENT_SECRET=...`
+- `NEXTAUTH_URL=http://localhost:3000`
+- `NEXTAUTH_SECRET=your_long_random_string`
+
 # Create T3 App
 
 This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
