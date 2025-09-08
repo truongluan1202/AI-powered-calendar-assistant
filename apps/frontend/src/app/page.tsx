@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 function useBackendBaseUrl() {
   return process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
@@ -79,7 +80,7 @@ export default function HomePage() {
       }}
     >
       <div style={{ marginBottom: 16 }}>
-        <a
+        <Link
           href="/chat"
           style={{
             display: "inline-block",
@@ -92,7 +93,7 @@ export default function HomePage() {
           }}
         >
           Go to Chat →
-        </a>
+        </Link>
       </div>
       <h1 style={{ fontSize: 28, fontWeight: 700 }}>
         AI Calendar Assistant (preview)

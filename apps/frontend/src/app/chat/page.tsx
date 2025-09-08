@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 type ModelKey = "openai" | "gemini" | "claude";
 
@@ -67,7 +68,7 @@ export default function ChatPage() {
   return (
     <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
       <header style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <a
+        <Link
           href="/"
           style={{
             display: "inline-block",
@@ -81,7 +82,7 @@ export default function ChatPage() {
           }}
         >
           ← Back
-        </a>
+        </Link>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginRight: "auto" }}>
           Chat with your calendar
         </h1>
