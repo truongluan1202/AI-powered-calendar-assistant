@@ -78,6 +78,22 @@ export default function HomePage() {
         margin: "0 auto",
       }}
     >
+      <div style={{ marginBottom: 16 }}>
+        <a
+          href="/chat"
+          style={{
+            display: "inline-block",
+            padding: "5px 10px",
+            background: "#6b7280",
+            color: "white",
+            textDecoration: "none",
+            borderRadius: 8,
+            // fontWeight: 600,
+          }}
+        >
+          Go to Chat →
+        </a>
+      </div>
       <h1 style={{ fontSize: 28, fontWeight: 700 }}>
         AI Calendar Assistant (preview)
       </h1>

@@ -67,6 +67,21 @@ export default function ChatPage() {
   return (
     <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
       <header style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <a
+          href="/"
+          style={{
+            display: "inline-block",
+            padding: "6px 12px",
+            background: "#6b7280",
+            color: "white",
+            textDecoration: "none",
+            borderRadius: 6,
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
+          ← Back
+        </a>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginRight: "auto" }}>
           Chat with your calendar
         </h1>
