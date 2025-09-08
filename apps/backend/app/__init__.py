@@ -1,0 +1,2 @@
+"""AI Calendar Backend Application."""
+
