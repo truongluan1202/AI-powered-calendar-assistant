@@ -23,7 +23,7 @@ export default function HomePage() {
     const fetchHealth = async () => {
       setLoadingHealth(true);
       try {
-        const res = await fetch(`${baseUrl}/health`);
+        const res = await fetch(`${baseUrl}/api/v1/health`);
         const data = (await res.json()) as { status?: string };
         setHealth(data.status ?? "unknown");
       } catch {
@@ -38,7 +38,7 @@ export default function HomePage() {
   const doEcho = async () => {
     setLoadingEcho(true);
     try {
-      const res = await fetch(`${baseUrl}/echo`, {
+      const res = await fetch(`${baseUrl}/api/v1/echo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: echoInput }),
@@ -55,7 +55,7 @@ export default function HomePage() {
   const doSuggest = async () => {
     setLoadingSuggest(true);
     try {
-      const res = await fetch(`${baseUrl}/ai/suggest`, {
+      const res = await fetch(`${baseUrl}/api/v1/ai/suggest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ context }),
@@ -77,6 +77,8 @@ export default function HomePage() {
         padding: "2rem",
         maxWidth: 820,
         margin: "0 auto",
+        height: "100vh",
+        overflowY: "auto",
       }}
     >
       <div style={{ marginBottom: 16 }}>

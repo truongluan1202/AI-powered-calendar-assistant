@@ -11,6 +11,8 @@ class UserCreate(BaseModel):
 
     email: EmailStr
     name: str
+    image: Optional[str] = None
+    timezone: Optional[str] = None
 
 
 class UserResponse(BaseModel):
@@ -19,10 +21,10 @@ class UserResponse(BaseModel):
     id: int
     email: str
     name: str
+    image: Optional[str] = None
+    timezone: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
-
-

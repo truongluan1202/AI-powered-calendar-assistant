@@ -6,17 +6,24 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class CreateSessionResponse(BaseModel):
-    """Create session response schema."""
+class CreateThreadRequest(BaseModel):
+    """Create thread request schema."""
 
-    session_id: str
+    title: str
+    model_provider: Literal["openai", "anthropic", "gemini"]
+    model_name: str
+
+
+class CreateThreadResponse(BaseModel):
+    """Create thread response schema."""
+
+    thread_id: int
 
 
 class PostMessageRequest(BaseModel):
     """Post message request schema."""
 
     content: str
-    model: Literal["openai", "gemini", "claude"] = "openai"
 
 
 class MessageResponse(BaseModel):
@@ -25,7 +32,6 @@ class MessageResponse(BaseModel):
     id: int
     role: str
     content: str
-    model: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -38,3 +44,48 @@ class GetMessagesResponse(BaseModel):
     messages: List[MessageResponse]
 
 
+class ThreadResponse(BaseModel):
+    """Thread response schema."""
+
+    id: int
+    title: str
+    model_provider: str
+    model_name: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class GetThreadsResponse(BaseModel):
+    """Get threads response schema."""
+
+    threads: List[ThreadResponse]
+
+
+class UpdateThreadRequest(BaseModel):
+    """Update thread request schema."""
+
+    title: str
+
+
+class UpdateThreadResponse(BaseModel):
+    """Update thread response schema."""
+
+    id: int
+    title: str
+    model_provider: str
+    model_name: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DeleteThreadResponse(BaseModel):
+    """Delete thread response schema."""
+
+    success: bool
+    message: str

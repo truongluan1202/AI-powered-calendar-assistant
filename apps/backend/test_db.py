@@ -30,6 +30,7 @@ async def test_database_connection():
         from app.core.database import AsyncSessionLocal
         from app.repositories.chat import ChatRepository
         from app.repositories.user import UserRepository
+        from app.services.llm import LLMService
 
         async with AsyncSessionLocal() as session:
             # Test user creation
@@ -37,20 +38,32 @@ async def test_database_connection():
             user = await user_repo.create_user(session, "test@example.com", "Test User")
             print(f"✅ User created: {user.email}")
 
-            # Test chat session creation
+            # Test chat thread creation
             chat_repo = ChatRepository()
-            chat_session = await chat_repo.create_session(session, user.id)
-            print(f"✅ Chat session created: {chat_session.session_id}")
+            chat_thread = await chat_repo.create_thread(
+                session, user.id, "Test Thread", "openai", "gpt-4"
+            )
+            print(f"✅ Chat thread created: {chat_thread.title}")
 
             # Test message creation
             message = await chat_repo.add_message(
-                session, chat_session.session_id, "user", "Hello, world!", "openai"
+                session, chat_thread.id, "user", "Hello, world!", user.id
             )
             print(f"✅ Message created: {message.content}")
 
             # Test message retrieval
-            messages = await chat_repo.get_messages(session, chat_session.session_id)
+            messages = await chat_repo.get_messages(session, chat_thread.id)
             print(f"✅ Retrieved {len(messages)} messages")
+
+            # Test LLM service
+            llm_service = LLMService()
+            available_providers = llm_service.get_available_providers()
+            print(f"✅ Available LLM providers: {available_providers}")
+
+            if available_providers:
+                print("✅ LLM service initialized successfully")
+            else:
+                print("⚠️  No LLM providers available (API keys not set)")
 
     except Exception as e:
         print(f"❌ Database test failed: {e}")

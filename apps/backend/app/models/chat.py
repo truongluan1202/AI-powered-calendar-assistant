@@ -9,50 +9,48 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 
-class ChatSession(Base):
-    """Chat session model."""
+class ChatThread(Base):
+    """Chat thread model."""
 
-    __tablename__ = "chat_sessions"
+    __tablename__ = "chat_threads"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    session_id: Mapped[str] = mapped_column(
-        String(255), unique=True, index=True, nullable=False
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False
     )
-    user_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=True
-    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    model_provider: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # openai, gemini, claude
+    model_name: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Relationships
-    user: Mapped[Optional["User"]] = relationship(
-        "User", back_populates="chat_sessions"
-    )
-    messages: Mapped[list["Message"]] = relationship(
-        "Message", back_populates="session", cascade="all, delete-orphan"
+    user: Mapped["User"] = relationship("User", back_populates="chat_threads")
+    messages: Mapped[list["ChatMessage"]] = relationship(
+        "ChatMessage", back_populates="thread", cascade="all, delete-orphan"
     )
 
 
-class Message(Base):
-    """Message model."""
+class ChatMessage(Base):
+    """Chat message model."""
 
-    __tablename__ = "messages"
+    __tablename__ = "chat_messages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    session_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("chat_sessions.id"), nullable=False
+    thread_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("chat_threads.id"), nullable=False
+    )
+    user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
     )
     role: Mapped[str] = mapped_column(
         String(50), nullable=False
     )  # user, assistant, system
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    model: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True
-    )  # openai, gemini, claude
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    session: Mapped["ChatSession"] = relationship(
-        "ChatSession", back_populates="messages"
-    )
-
+    thread: Mapped["ChatThread"] = relationship("ChatThread", back_populates="messages")
+    user: Mapped[Optional["User"]] = relationship("User")
