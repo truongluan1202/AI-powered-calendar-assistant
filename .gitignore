@@ -1,0 +1,42 @@
+# ---- Node / Next.js ----
+node_modules/
+.next/
+out/
+dist/
+
+# ---- Python / FastAPI ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+ENV/
+
+# ---- Environment files ----
+.env
+.env.*
+apps/backend/.env
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- IDE/editor ----
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---- OS-specific ----
+.DS_Store
+Thumbs.db
+
+# ---- Testing ----
+.coverage
+.pytest_cache/
+htmlcov/
