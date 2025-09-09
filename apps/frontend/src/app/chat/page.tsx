@@ -2,204 +2,167 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { chatApi, type ChatMessage, type ChatThread } from "~/lib/api";
+import { api } from "~/trpc/react";
+import { useSession } from "next-auth/react";
 
 type ModelKey = "openai" | "anthropic" | "gemini";
 
 export default function ChatPage() {
-  const [currentThread, setCurrentThread] = useState<ChatThread | null>(null);
-  const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { data: session, status } = useSession();
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [input, setInput] = useState<string>("");
   const [model, setModel] = useState<ModelKey>("openai");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [editingThread, setEditingThread] = useState<number | null>(null);
+  const [editingThread, setEditingThread] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
   const listRef = useRef<HTMLDivElement | null>(null);
+  const hasInitialized = useRef<boolean>(false);
 
-  // Initialize with a default thread
-  useEffect(() => {
-    const initializeChat = async () => {
-      try {
-        setError(null);
+  // tRPC queries and mutations
+  const threadsQuery = api.chat.getThreads.useQuery(undefined, {
+    enabled: !!session,
+  });
+  const threads = threadsQuery.data ?? [];
+  const refetchThreads = threadsQuery.refetch;
 
-        // Create a new thread
-        const threadResponse = await chatApi.createThread({
-          title: "New Chat",
-          model_provider: model,
-          model_name:
-            model === "openai"
-              ? "gpt-4"
-              : model === "anthropic"
-                ? "claude-3-sonnet-20240229"
-                : "gemini-2.5-flash-lite",
-        });
+  const messagesQuery = api.chat.getMessages.useQuery(
+    { threadId: currentThreadId! },
+    { enabled: !!currentThreadId && !!session },
+  );
+  const messages = messagesQuery.data ?? [];
+  const refetchMessages = messagesQuery.refetch;
 
-        // Get the thread details
-        const threadsResponse = await chatApi.getThreads();
-        const newThread = threadsResponse.threads.find(
-          (t) => t.id === threadResponse.thread_id,
-        );
+  const availableProvidersQuery = api.ai.getAvailableProviders.useQuery();
+  const availableProviders = availableProvidersQuery.data;
 
-        if (newThread) {
-          setCurrentThread(newThread);
-          setThreads(threadsResponse.threads);
-        }
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to initialize chat",
-        );
+  const createThreadMutation = api.chat.createThread.useMutation({
+    onSuccess: (newThread) => {
+      setCurrentThreadId(newThread.id);
+      void refetchThreads();
+    },
+  });
+
+  const addMessageMutation = api.chat.addMessage.useMutation({
+    onSuccess: () => {
+      void refetchMessages();
+    },
+  });
+
+  const updateThreadMutation = api.chat.updateThread.useMutation({
+    onSuccess: () => {
+      void refetchThreads();
+      setEditingThread(null);
+      setEditingTitle("");
+    },
+  });
+
+  const deleteThreadMutation = api.chat.deleteThread.useMutation({
+    onSuccess: () => {
+      void refetchThreads();
+      if (currentThreadId === editingThread) {
+        setCurrentThreadId(null);
       }
-    };
+      setEditingThread(null);
+    },
+  });
 
-    void initializeChat();
-  }, [model]);
+  const generateAIResponseMutation = api.ai.generateResponse.useMutation({
+    onSuccess: () => {
+      void refetchMessages();
+    },
+  });
 
-  // Load messages when thread changes
+  // Initialize by selecting first available thread (don't auto-create)
   useEffect(() => {
-    if (!currentThread) return;
+    if (session && !hasInitialized.current) {
+      hasInitialized.current = true;
 
-    const loadMessages = async () => {
-      try {
-        setError(null);
-        const response = await chatApi.getMessages(currentThread.id);
-        setMessages(response.messages);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load messages",
-        );
+      if (threads.length > 0 && !currentThreadId) {
+        // Select the first available thread if none is selected
+        setCurrentThreadId(threads[0]?.id ?? null);
       }
-    };
+    }
+  }, [session, threads.length, currentThreadId]);
 
-    void loadMessages();
-  }, [currentThread]);
-
+  // Update model selection when thread changes
   useEffect(() => {
-    if (!listRef.current) return;
-    listRef.current.scrollTop = listRef.current.scrollHeight;
+    if (currentThreadId && threads.length > 0) {
+      const selectedThread = threads.find(
+        (thread: any) => thread.id === currentThreadId,
+      );
+      if (selectedThread) {
+        setModel(selectedThread.modelProvider as ModelKey);
+      }
+    }
+  }, [currentThreadId, threads]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const send = async () => {
-    if (!currentThread || !input.trim()) return;
+    if (!input.trim()) return;
 
-    const userText = input;
-    setInput("");
-    setLoading(true);
-
-    try {
-      setError(null);
-
-      // Add user message optimistically
-      const userMessage: ChatMessage = {
-        id: Date.now(),
-        role: "user",
-        content: userText,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((m) => [...m, userMessage]);
-
-      // Send message to backend
-      const response = await chatApi.postMessage(currentThread.id, {
-        content: userText,
-      });
-
-      // Add assistant response
-      setMessages((m) => [...m, response]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send message");
-      // Remove the optimistic user message on error
-      setMessages((m) => m.slice(0, -1));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createNewThread = async () => {
-    try {
-      setError(null);
-      const response = await chatApi.createThread({
-        title: "New Chat",
-        model_provider: model,
-        model_name:
-          model === "openai"
-            ? "gpt-4"
-            : model === "anthropic"
-              ? "claude-3-sonnet-20240229"
-              : "gemini-2.5-flash-lite",
-      });
-
-      // Refresh threads list
-      const threadsResponse = await chatApi.getThreads();
-      setThreads(threadsResponse.threads);
-
-      // Set new thread as current
-      const newThread = threadsResponse.threads.find(
-        (t) => t.id === response.thread_id,
+    if (!currentThreadId) {
+      console.error(
+        "No thread selected. Please wait for thread initialization or create a new thread.",
       );
-      if (newThread) {
-        setCurrentThread(newThread);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create new thread",
-      );
-    }
-  };
-
-  const updateThreadTitle = async (threadId: number, newTitle: string) => {
-    try {
-      setError(null);
-      await chatApi.updateThread(threadId, { title: newTitle });
-
-      // Refresh threads list
-      const threadsResponse = await chatApi.getThreads();
-      setThreads(threadsResponse.threads);
-
-      // Update current thread if it's the one being edited
-      if (currentThread?.id === threadId) {
-        setCurrentThread({ ...currentThread, title: newTitle });
-      }
-
-      setEditingThread(null);
-      setEditingTitle("");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to update thread title",
-      );
-    }
-  };
-
-  const deleteThread = async (threadId: number) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this chat? This action cannot be undone.",
-      )
-    ) {
       return;
     }
 
-    try {
-      setError(null);
-      await chatApi.deleteThread(threadId);
+    const userMessage = input.trim();
+    setInput("");
 
-      // Refresh threads list
-      const threadsResponse = await chatApi.getThreads();
-      setThreads(threadsResponse.threads);
+    // First save the user message
+    addMessageMutation.mutate({
+      threadId: currentThreadId,
+      role: "user",
+      content: userMessage,
+    });
 
-      // Clear current thread if it was deleted
-      if (currentThread?.id === threadId) {
-        setCurrentThread(null);
-        setMessages([]);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete thread");
-    }
+    // Then generate AI response
+    generateAIResponseMutation.mutate({
+      threadId: currentThreadId,
+      message: userMessage,
+      modelProvider: model,
+      modelName:
+        model === "openai"
+          ? "gpt-4"
+          : model === "anthropic"
+            ? "claude-3-sonnet-20240229"
+            : "gemini-2.5-flash-lite",
+    });
   };
 
-  const startEditing = (thread: ChatThread) => {
-    setEditingThread(thread.id);
-    setEditingTitle(thread.title);
+  const createNewThread = () => {
+    createThreadMutation.mutate({
+      title: "New Chat",
+      modelProvider: model,
+      modelName:
+        model === "openai"
+          ? "gpt-4"
+          : model === "anthropic"
+            ? "claude-3-sonnet-20240229"
+            : "gemini-2.5-flash-lite",
+    });
+  };
+
+  const updateThreadTitle = (threadId: string, newTitle: string) => {
+    updateThreadMutation.mutate({
+      threadId,
+      title: newTitle,
+    });
+  };
+
+  const deleteThread = (threadId: string) => {
+    deleteThreadMutation.mutate({ threadId });
+  };
+
+  const startEditing = (threadId: string, currentTitle: string) => {
+    setEditingThread(threadId);
+    setEditingTitle(currentTitle);
   };
 
   const cancelEditing = () => {
@@ -207,359 +170,240 @@ export default function ChatPage() {
     setEditingTitle("");
   };
 
-  // Simple markdown renderer for basic formatting
   const renderMarkdown = (text: string) => {
     return text
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.*?)\*/g, "<em>$1</em>")
       .replace(
         /`(.*?)`/g,
-        '<code style="background: #f3f4f6; padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>',
+        "<code class='bg-gray-100 px-1 py-0.5 rounded text-sm'>$1</code>",
       )
-      .replace(/\n/g, "<br>");
+      .replace(/\n/g, "<br />");
   };
 
-  return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      {/* Sidebar with threads */}
-      <div
-        style={{
-          width: 250,
-          borderRight: "1px solid #e5e7eb",
-          padding: 16,
-          overflowY: "auto",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 16,
-          }}
-        >
+  if (status === "loading") {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h1 className="mb-4 text-2xl font-bold">
+            Please sign in to use the chat
+          </h1>
           <Link
-            href="/"
-            style={{
-              display: "inline-block",
-              padding: "4px 8px",
-              background: "#6b7280",
-              color: "white",
-              textDecoration: "none",
-              borderRadius: 4,
-              fontSize: 12,
-            }}
+            href="/api/auth/signin"
+            className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
-            ← Back
+            Sign In
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
+      {/* Sidebar */}
+      <div className="flex w-64 flex-col border-r border-gray-200 bg-white">
+        <div className="border-b border-gray-200 p-4">
           <button
             onClick={createNewThread}
-            style={{
-              padding: "4px 8px",
-              background: "#2563eb",
-              color: "white",
-              border: "none",
-              borderRadius: 4,
-              fontSize: 12,
-              cursor: "pointer",
-            }}
+            className="w-full rounded bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
           >
-            + New
+            + New Chat
           </button>
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 14,
-            }}
-          >
-            <span>Model</span>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value as ModelKey)}
-              style={{ padding: 4, borderRadius: 4, fontSize: 12 }}
-            >
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
-              <option value="gemini">Gemini</option>
-            </select>
-          </label>
-        </div>
-
-        <div>
-          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-            Threads
-          </h3>
-          {threads.map((thread) => (
-            <div
-              key={thread.id}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 6,
-                backgroundColor:
-                  currentThread?.id === thread.id ? "#f3f4f6" : "transparent",
-                marginBottom: 4,
-                fontSize: 14,
-                position: "relative",
-              }}
-            >
-              {editingThread === thread.id ? (
-                <div>
-                  <input
-                    value={editingTitle}
-                    onChange={(e) => setEditingTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        void updateThreadTitle(thread.id, editingTitle);
-                      } else if (e.key === "Escape") {
-                        cancelEditing();
-                      }
-                    }}
-                    onBlur={() =>
-                      void updateThreadTitle(thread.id, editingTitle)
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "4px 8px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: 4,
-                      fontSize: 14,
-                    }}
-                    autoFocus
-                  />
-                </div>
-              ) : (
-                <div
-                  onClick={() => setCurrentThread(thread)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div style={{ fontWeight: 500 }}>{thread.title}</div>
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>
-                    {thread.model_provider} •{" "}
-                    {new Date(thread.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-              )}
-
-              {editingThread !== thread.id && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 4,
-                    right: 4,
-                    display: "flex",
-                    gap: 4,
-                  }}
-                >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startEditing(thread);
-                    }}
-                    style={{
-                      // padding: "2px 6px",
-                      // background: "#6b7280",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 3,
-                      fontSize: 10,
-                      padding: 0,
-                      margin: 0,
-                      cursor: "pointer",
-                    }}
-                    title="Rename"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void deleteThread(thread.id);
-                    }}
-                    style={{
-                      padding: "2px 6px",
-                      // background: "#dc2626",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 3,
-                      fontSize: 15,
-                      cursor: "pointer",
-                      margin: 0,
-                    }}
-                    title="Delete"
-                  >
-                    ❎
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Main chat area */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <header
-          style={{
-            padding: 16,
-            borderBottom: "1px solid #e5e7eb",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <h1 style={{ fontSize: 20, fontWeight: 700 }}>
-            {currentThread?.title ?? "Select a thread"}
-          </h1>
-          {currentThread && (
-            <span
-              style={{
-                fontSize: 12,
-                color: "#6b7280",
-                background: "#f3f4f6",
-                padding: "2px 8px",
-                borderRadius: 12,
-              }}
-            >
-              {currentThread.model_provider} • {currentThread.model_name}
-            </span>
-          )}
-        </header>
-
-        {error && (
-          <div
-            style={{
-              padding: 12,
-              background: "#fef2f2",
-              color: "#dc2626",
-              borderBottom: "1px solid #e5e7eb",
-              fontSize: 14,
-            }}
-          >
-            Error: {error}
-          </div>
-        )}
-
-        <div
-          ref={listRef}
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: 16,
-          }}
-        >
-          {messages.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                color: "#6b7280",
-                marginTop: 40,
-                fontSize: 16,
-              }}
-            >
-              Start a conversation by typing a message below
+        <div className="flex-1 overflow-y-auto p-4">
+          {threads.length === 0 ? (
+            <div className="text-center text-gray-500">
+              <p className="mb-2">No chat threads yet</p>
+              <p className="text-sm">Click "New Chat" to start</p>
             </div>
           ) : (
-            messages.map((m) => (
+            threads.map((thread: any) => (
               <div
-                key={`${m.role}-${m.id}`}
-                style={{
-                  marginBottom: 16,
-                  display: "flex",
-                  gap: 12,
-                  alignItems: "flex-start",
-                }}
+                key={thread.id}
+                className={`mb-2 cursor-pointer rounded-lg p-3 transition-colors ${
+                  currentThreadId === thread.id
+                    ? "border border-blue-300 bg-blue-100"
+                    : "bg-gray-50 hover:bg-gray-100"
+                }`}
+                onClick={() => setCurrentThreadId(thread.id)}
               >
-                <div
-                  style={{
-                    fontWeight: 600,
-                    minWidth: 80,
-                    fontSize: 14,
-                    color: m.role === "assistant" ? "#2563eb" : "#6b7280",
-                  }}
-                >
-                  {m.role === "assistant"
-                    ? "Assistant"
-                    : m.role === "system"
-                      ? "System"
-                      : "You"}
-                </div>
-                <div
-                  style={{
-                    flex: 1,
-                    fontSize: 14,
-                    lineHeight: 1.5,
-                  }}
-                  dangerouslySetInnerHTML={{
-                    __html: renderMarkdown(m.content),
-                  }}
-                />
+                {editingThread === thread.id ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      className="w-full rounded border px-2 py-1 text-sm"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          updateThreadTitle(thread.id, editingTitle);
+                        } else if (e.key === "Escape") {
+                          cancelEditing();
+                        }
+                      }}
+                      onBlur={() => updateThreadTitle(thread.id, editingTitle)}
+                    />
+                    <div className="flex space-x-1">
+                      <button
+                        onClick={() =>
+                          updateThreadTitle(thread.id, editingTitle)
+                        }
+                        className="rounded bg-green-500 px-2 py-1 text-xs text-white hover:bg-green-600"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEditing}
+                        className="rounded bg-gray-500 px-2 py-1 text-xs text-white hover:bg-gray-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-gray-900">
+                        {thread.title}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {thread.modelProvider} • {thread.modelName}
+                      </div>
+                    </div>
+                    <div className="ml-2 flex space-x-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditing(thread.id, thread.title);
+                        }}
+                        className="text-xs text-gray-400 hover:text-gray-600"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteThread(thread.id);
+                        }}
+                        className="text-xs text-gray-400 hover:text-red-600"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           )}
-          {loading && (
-            <div
-              style={{
-                padding: 16,
-                color: "#6b7280",
-                fontSize: 14,
-                fontStyle: "italic",
-              }}
-            >
-              Assistant is thinking…
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex flex-1 flex-col">
+        {/* Model Selection Header */}
+        <div className="border-b border-gray-200 bg-white p-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-semibold">Chat</h1>
+            <div className="flex items-center space-x-4">
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value as ModelKey)}
+                className="rounded border border-gray-300 px-3 py-1 text-sm"
+              >
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="gemini">Gemini</option>
+              </select>
             </div>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto p-4">
+          {!currentThreadId ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center text-gray-500">
+                <p className="mb-2 text-lg">Welcome to AI Calendar Assistant</p>
+                <p className="text-sm">
+                  Select a chat thread or create a new one to start
+                </p>
+              </div>
+            </div>
+          ) : (
+            messages.map((message: any) => (
+              <div
+                key={message.id}
+                className={`flex ${
+                  message.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-3xl rounded-lg px-4 py-2 ${
+                    message.role === "user"
+                      ? "bg-blue-500 text-white"
+                      : "border border-gray-200 bg-white"
+                  }`}
+                >
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(message.content),
+                    }}
+                  />
+                  <div
+                    className={`mt-1 text-xs ${
+                      message.role === "user"
+                        ? "text-blue-100"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    {new Date(message.createdAt).toLocaleTimeString()}
+                  </div>
+                </div>
+              </div>
+            ))
           )}
         </div>
 
-        <div
-          style={{
-            padding: 16,
-            borderTop: "1px solid #e5e7eb",
-            display: "flex",
-            gap: 8,
-          }}
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask to schedule, reschedule, summarize…"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void send();
+        {/* Input */}
+        <div className="border-t border-gray-200 bg-white p-4">
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void send();
+                }
+              }}
+              placeholder="Type your message..."
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              disabled={!currentThreadId}
+            />
+            <button
+              onClick={send}
+              disabled={
+                !input.trim() ||
+                !currentThreadId ||
+                generateAIResponseMutation.isPending
               }
-            }}
-            disabled={!currentThread || loading}
-            style={{
-              flex: 1,
-              padding: 12,
-              border: "1px solid #e5e7eb",
-              borderRadius: 8,
-              fontSize: 14,
-            }}
-          />
-          <button
-            onClick={() => void send()}
-            disabled={!currentThread || loading || !input.trim()}
-            style={{
-              padding: "12px 16px",
-              borderRadius: 8,
-              background:
-                currentThread && !loading && input.trim() ? "#111" : "#9ca3af",
-              color: "white",
-              border: "none",
-              cursor:
-                currentThread && !loading && input.trim()
-                  ? "pointer"
-                  : "not-allowed",
-            }}
-          >
-            Send
-          </button>
+              className="rounded-lg bg-blue-500 px-6 py-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {generateAIResponseMutation.isPending ? "Sending..." : "Send"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
