@@ -42,11 +42,13 @@ class LLMResponse:
         provider: str,
         model: str,
         usage: Optional[Dict[str, Any]] = None,
+        tool_calls: Optional[List[Dict[str, Any]]] = None,
     ):
         self.content = content
         self.provider = provider
         self.model = model
         self.usage = usage or {}
+        self.tool_calls = tool_calls or []
 
 
 # ----------------------------
@@ -60,7 +62,9 @@ class BaseLLMProvider(ABC):
         self.model = model
 
     @abstractmethod
-    async def generate_response(self, messages: List[LLMMessage]) -> LLMResponse:
+    async def generate_response(
+        self, messages: List[LLMMessage], tools: Optional[List[Dict[str, Any]]] = None
+    ) -> LLMResponse:
         raise NotImplementedError
 
 
@@ -74,20 +78,45 @@ class OpenAIProvider(BaseLLMProvider):
         super().__init__(api_key, model)
         self.client = AsyncOpenAI(api_key=api_key)
 
-    async def generate_response(self, messages: List[LLMMessage]) -> LLMResponse:
+    async def generate_response(
+        self, messages: List[LLMMessage], tools: Optional[List[Dict[str, Any]]] = None
+    ) -> LLMResponse:
         try:
             openai_messages = [{"role": m.role, "content": m.content} for m in messages]
 
-            response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=openai_messages,
-                max_tokens=1000,
-                temperature=0.7,
-            )
+            # Prepare the request parameters
+            request_params = {
+                "model": self.model,
+                "messages": openai_messages,
+                "max_tokens": 1000,
+                "temperature": 0.7,
+            }
 
-            content = (
-                (response.choices[0].message.content or "") if response.choices else ""
-            )
+            # Add tools if provided
+            if tools:
+                request_params["tools"] = tools
+                request_params["tool_choice"] = "auto"
+
+            response = await self.client.chat.completions.create(**request_params)
+
+            message = response.choices[0].message
+            content = message.content or ""
+
+            # Extract tool calls if present
+            tool_calls = []
+            if hasattr(message, "tool_calls") and message.tool_calls:
+                for tool_call in message.tool_calls:
+                    tool_calls.append(
+                        {
+                            "id": tool_call.id,
+                            "type": tool_call.type,
+                            "function": {
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments,
+                            },
+                        }
+                    )
+
             usage = {}
             if getattr(response, "usage", None):
                 usage = {
@@ -98,7 +127,9 @@ class OpenAIProvider(BaseLLMProvider):
                     "total_tokens": getattr(response.usage, "total_tokens", None),
                 }
 
-            return LLMResponse(content, LLMProvider.OPENAI, self.model, usage)
+            return LLMResponse(
+                content, LLMProvider.OPENAI, self.model, usage, tool_calls
+            )
         except Exception as e:
             raise Exception(f"OpenAI API error: {str(e)}")
 
@@ -113,7 +144,9 @@ class AnthropicProvider(BaseLLMProvider):
         super().__init__(api_key, model)
         self.client = anthropic.AsyncAnthropic(api_key=api_key)
 
-    async def generate_response(self, messages: List[LLMMessage]) -> LLMResponse:
+    async def generate_response(
+        self, messages: List[LLMMessage], tools: Optional[List[Dict[str, Any]]] = None
+    ) -> LLMResponse:
         try:
             system_message = None
             anthropic_messages = []
@@ -123,15 +156,42 @@ class AnthropicProvider(BaseLLMProvider):
                 elif m.role in ("user", "assistant"):
                     anthropic_messages.append({"role": m.role, "content": m.content})
 
-            resp = await self.client.messages.create(
-                model=self.model,
-                max_tokens=1000,
-                temperature=0.7,
-                system=system_message,
-                messages=anthropic_messages,
-            )
+            # Prepare request parameters
+            request_params = {
+                "model": self.model,
+                "max_tokens": 1000,
+                "temperature": 0.7,
+                "system": system_message,
+                "messages": anthropic_messages,
+            }
+
+            # Add tools if provided (Anthropic format)
+            if tools:
+                request_params["tools"] = tools
+
+            resp = await self.client.messages.create(**request_params)
 
             content = resp.content[0].text if getattr(resp, "content", None) else ""
+
+            # Extract tool calls if present (Anthropic format)
+            tool_calls = []
+            if hasattr(resp, "content") and resp.content:
+                for content_item in resp.content:
+                    if (
+                        hasattr(content_item, "type")
+                        and content_item.type == "tool_use"
+                    ):
+                        tool_calls.append(
+                            {
+                                "id": content_item.id,
+                                "type": "tool_use",
+                                "function": {
+                                    "name": content_item.name,
+                                    "arguments": content_item.input,
+                                },
+                            }
+                        )
+
             usage = {}
             if getattr(resp, "usage", None):
                 usage = {
@@ -139,7 +199,9 @@ class AnthropicProvider(BaseLLMProvider):
                     "output_tokens": getattr(resp.usage, "output_tokens", None),
                 }
 
-            return LLMResponse(content, LLMProvider.ANTHROPIC, self.model, usage)
+            return LLMResponse(
+                content, LLMProvider.ANTHROPIC, self.model, usage, tool_calls
+            )
         except Exception as e:
             raise Exception(f"Anthropic API error: {str(e)}")
 
@@ -162,7 +224,9 @@ class GeminiProvider(BaseLLMProvider):
         self.client = genai.Client(api_key=api_key)
         self.model = model
 
-    async def generate_response(self, messages: List[LLMMessage]) -> LLMResponse:
+    async def generate_response(
+        self, messages: List[LLMMessage], tools: Optional[List[Dict[str, Any]]] = None
+    ) -> LLMResponse:
         try:
             # Convert messages to Gemini format
             prompt_parts = []
@@ -177,6 +241,27 @@ class GeminiProvider(BaseLLMProvider):
 
             prompt = "\n\n".join(prompt_parts)
 
+            # Prepare generation config
+            config = genai.types.GenerateContentConfig(
+                max_output_tokens=1000,
+                temperature=0.7,
+            )
+
+            # Add tools if provided (Gemini format)
+            if tools:
+                # Convert tools to Gemini function declarations format
+                function_declarations = []
+                for tool in tools:
+                    if "function" in tool:
+                        function_declarations.append(
+                            {
+                                "name": tool["function"]["name"],
+                                "description": tool["function"]["description"],
+                                "parameters": tool["function"]["parameters"],
+                            }
+                        )
+                config.tools = [{"function_declarations": function_declarations}]
+
             # Use the google-genai client to generate content (synchronous call)
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
@@ -184,10 +269,7 @@ class GeminiProvider(BaseLLMProvider):
                 lambda: self.client.models.generate_content(
                     model=self.model,
                     contents=prompt,
-                    config=genai.types.GenerateContentConfig(
-                        max_output_tokens=1000,
-                        temperature=0.7,
-                    ),
+                    config=config,
                 ),
             )
 
@@ -195,11 +277,33 @@ class GeminiProvider(BaseLLMProvider):
                 response.text if hasattr(response, "text") and response.text else ""
             )
 
+            # Extract tool calls if present (Gemini format)
+            tool_calls = []
+            if hasattr(response, "candidates") and response.candidates:
+                for candidate in response.candidates:
+                    if hasattr(candidate, "content") and candidate.content:
+                        for part in candidate.content.parts:
+                            if (
+                                hasattr(part, "function_call")
+                                and part.function_call is not None
+                            ):
+                                tool_calls.append(
+                                    {
+                                        "id": f"gemini-{hash(part.function_call.name)}",
+                                        "type": "function",
+                                        "function": {
+                                            "name": part.function_call.name,
+                                            "arguments": str(part.function_call.args),
+                                        },
+                                    }
+                                )
+
             return LLMResponse(
                 content=content,
                 provider=LLMProvider.GEMINI,
                 model=self.model,
                 usage={},  # Gemini doesn't provide detailed usage info
+                tool_calls=tool_calls,
             )
         except Exception as e:
             raise Exception(f"Gemini API error: {str(e)}")
@@ -245,6 +349,7 @@ class LLMService:
         provider: str,
         messages: List[LLMMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
     ) -> LLMResponse:
         if provider not in self.providers:
             raise ValueError(f"Provider {provider} is not available")
@@ -258,9 +363,9 @@ class LLMService:
                 temp = GeminiProvider(settings.GEMINI_API_KEY, model)
             else:
                 raise ValueError(f"Unknown provider: {provider}")
-            return await temp.generate_response(messages)
+            return await temp.generate_response(messages, tools)
 
-        return await self.providers[provider].generate_response(messages)
+        return await self.providers[provider].generate_response(messages, tools)
 
     async def generate_chat_response(
         self,
@@ -274,7 +379,10 @@ class LLMService:
             content=(
                 "You are an AI calendar assistant. Help users manage their schedules, "
                 "create events, and answer questions about their calendar. "
-                "Be helpful, concise, and professional."
+                "You have access to tools to get calendar events, create new events, and search the web. "
+                "When users ask about their calendar, use the getEvents tool to fetch their events. "
+                "When users want to create events, use the createEvent tool. "
+                "Be helpful, concise, and professional. Always confirm actions you take."
             ),
         )
 

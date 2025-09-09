@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  timezone      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // Custom relations
+  chatThreads    ChatThread[]    @relation("UserThreads")
+  messages       ChatMessage[]   @relation("UserMessages")
+  calendarEvents CalendarEvent[]
+
+  @@map("users")
+}
+
+model Account {
+  id                      String  @id @default(cuid())
+  userId                  String
+  type                    String
+  provider                String
+  providerAccountId       String
+  refresh_token           String?
+  access_token            String?
+  expires_at              Int?
+  token_type              String?
+  scope                   String?
+  id_token                String?
+  session_state           String?
+  refresh_token_expires_in Int?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model ChatThread {
+  id            String   @id @default(cuid())
+  userId        String
+  title         String
+  modelProvider String   @map("model_provider") // "openai" | "anthropic" | "gemini"
+  modelName     String   @map("model_name")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // match relation name used on User.chatThreads
+  user     User          @relation("UserThreads", fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId])
+  @@map("chat_threads")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  threadId  String   @map("thread_id")
+  userId    String?  @map("user_id") // optional author; null if system/assistant without user
+  role      String // "user" | "assistant" | "system"
+  content   String
+  createdAt DateTime @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  // match relation name used on User.messages
+  user   User?      @relation("UserMessages", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([threadId])
+  @@index([userId])
+  @@map("chat_messages")
+}
+
+model CalendarEvent {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  provider        String // "google"
+  providerEmail   String    @map("provider_email")
+  calendarId      String    @map("calendar_id")
+  externalEventId String    @map("external_event_id")
+  etag            String?
+  status          String // "confirmed" | "tentative" | "cancelled"
+  summary         String
+  description     String?
+  location        String?
+  startTs         DateTime  @map("start_ts")
+  endTs           DateTime  @map("end_ts")
+  timezone        String
+  attendees       Json?
+  source          Json?
+  deletedAt       DateTime? @map("deleted_at")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerEmail, calendarId, externalEventId])
+  @@index([userId])
+  @@map("calendar_events")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}

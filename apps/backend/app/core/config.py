@@ -11,11 +11,6 @@ load_dotenv()
 class Settings:
     """Application settings."""
 
-    # Database
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", "postgresql+asyncpg://postgres:12345@localhost:5432/postgres"
-    )
-
     # CORS
     ALLOWED_ORIGINS: List[str] = ["*"]
 

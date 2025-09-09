@@ -1,4 +1,9 @@
+"use client";
+
 import "~/styles/globals.css";
+import { SessionProvider } from "next-auth/react";
+import { TRPCReactProvider } from "~/trpc/react";
+import Navbar from "~/components/Navbar";
 
 export default function RootLayout({
   children,
@@ -7,10 +12,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        style={{ margin: 0, padding: 0, height: "100vh", overflow: "hidden" }}
-      >
-        {children}
+      <body className="min-h-screen bg-gray-50">
+        <SessionProvider>
+          <TRPCReactProvider>
+            <Navbar />
+            <main>{children}</main>
+          </TRPCReactProvider>
+        </SessionProvider>
       </body>
     </html>
   );
