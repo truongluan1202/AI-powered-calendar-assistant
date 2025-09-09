@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const executor = new ToolExecutor(session.access_token as string);
+    const executor = new ToolExecutor(session.access_token);
     const results = [];
 
     for (const toolCall of toolCalls) {

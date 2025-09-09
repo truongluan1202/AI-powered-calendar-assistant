@@ -6,7 +6,7 @@ import { authOptions } from "~/server/auth";
 type SessionWithTokens = {
   user?: { name?: string | null; email?: string | null; image?: string | null };
   expires: string;
-  access_token?: string;
+  access_token: string | null;
   refresh_token?: string;
   expires_at?: number;
 };

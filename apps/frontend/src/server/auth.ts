@@ -18,6 +18,7 @@ declare module "next-auth" {
       // ...other properties
       // role: UserRole;
     } & DefaultSession["user"];
+    access_token: string | null;
   }
 
   // interface User {
@@ -33,13 +34,35 @@ declare module "next-auth" {
  */
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
+    async session({ session, user }) {
+      // Get the account with access token from database
+      if (user?.id) {
+        const account = await db.account.findFirst({
+          where: {
+            userId: user.id,
+            provider: "google",
+          },
+        });
+
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            id: user.id,
+          },
+          access_token: account?.access_token ?? null,
+        };
+      }
+
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: user.id,
+        },
+        access_token: null,
+      };
+    },
   },
   adapter: PrismaAdapter(db),
   providers: [
