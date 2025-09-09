@@ -50,9 +50,9 @@ export default function CalendarDemoPage() {
 
       if (result.success) {
         const data = JSON.parse(result.content);
-        setEvents(data.events || []);
+        setEvents(data.events ?? []);
       } else {
-        setError(result.error || "Failed to fetch events");
+        setError(result.error ?? "Failed to fetch events");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -130,7 +130,7 @@ export default function CalendarDemoPage() {
               <div className="space-y-4">
                 {events.map((event, index) => (
                   <div
-                    key={event.id || index}
+                    key={event.id ?? index}
                     className="border-l-4 border-blue-500 pl-4"
                   >
                     <h3 className="font-medium text-gray-900">

@@ -73,6 +73,7 @@ export default function Navbar() {
                 {/* User Info */}
                 <div className="hidden items-center space-x-2 sm:flex">
                   {session.user?.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={session.user.image}
                       alt="Profile"
@@ -90,6 +91,7 @@ export default function Navbar() {
                 {/* Mobile User Avatar */}
                 <div className="sm:hidden">
                   {session.user?.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={session.user.image}
                       alt="Profile"
@@ -98,7 +100,7 @@ export default function Navbar() {
                   ) : (
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500">
                       <span className="text-sm font-medium text-white">
-                        {session.user?.name?.charAt(0) || "U"}
+                        {session.user?.name?.charAt(0) ?? "U"}
                       </span>
                     </div>
                   )}

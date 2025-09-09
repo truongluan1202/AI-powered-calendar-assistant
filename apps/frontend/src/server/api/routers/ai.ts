@@ -192,7 +192,7 @@ export const aiRouter = createTRPCRouter({
         throw new Error(`Backend error: ${response.statusText}`);
       }
 
-      const providers = (await response.json()) as any;
+      const providers = await response.json();
       return providers;
     } catch (error) {
       console.error("Error fetching providers:", error);
