@@ -27,7 +27,7 @@ CALENDAR_TOOLS = [
         "type": "function",
         "function": {
             "name": "getEvents",
-            "description": "Get calendar events for a specific time period or search for specific events",
+            "description": "Get calendar events for a specific time period or search for specific events. Use this tool for ANY question about existing events, upcoming events, or calendar queries. Examples: 'What's my next event?', 'What's on my calendar tomorrow?', 'Do I have meetings today?', 'Show me my schedule for next week'",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -62,7 +62,7 @@ CALENDAR_TOOLS = [
         "type": "function",
         "function": {
             "name": "createEvent",
-            "description": "Create a new calendar event",
+            "description": "Create a new calendar event. Use this tool when users want to add, schedule, or create new events. Examples: 'Add a meeting with John tomorrow at 2pm', 'Schedule a dentist appointment', 'Create an event for team standup'",
             "parameters": {
                 "type": "object",
                 "properties": {

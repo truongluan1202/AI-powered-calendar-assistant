@@ -14,8 +14,19 @@ export default function ChatPage() {
   const [model, setModel] = useState<ModelKey>("openai");
   const [editingThread, setEditingThread] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
+  const [optimisticMessages, setOptimisticMessages] = useState<
+    Array<{
+      id: string;
+      role: string;
+      content: string;
+      createdAt: Date;
+      isOptimistic: boolean;
+      isLoading?: boolean;
+    }>
+  >([]);
   const listRef = useRef<HTMLDivElement | null>(null);
   const hasInitialized = useRef<boolean>(false);
+  const lastMessageCountRef = useRef<number>(0);
 
   // tRPC queries and mutations
   const threadsQuery = api.chat.getThreads.useQuery(undefined, {
@@ -44,6 +55,13 @@ export default function ChatPage() {
   const addMessageMutation = api.chat.addMessage.useMutation({
     onSuccess: () => {
       void refetchMessages();
+      // Don't remove optimistic user message here - let it be replaced by the real message
+    },
+    onError: () => {
+      // Remove optimistic user message on error
+      setOptimisticMessages((prev) =>
+        prev.filter((msg) => !msg.isOptimistic || msg.role !== "user"),
+      );
     },
   });
 
@@ -68,6 +86,21 @@ export default function ChatPage() {
   const generateAIResponseMutation = api.ai.generateResponse.useMutation({
     onSuccess: () => {
       void refetchMessages();
+      // Don't remove optimistic AI message here - let it be replaced by the real message
+    },
+    onError: () => {
+      // Remove optimistic AI message on error and show error state
+      setOptimisticMessages((prev) =>
+        prev.map((msg) =>
+          msg.isOptimistic && msg.role === "assistant"
+            ? {
+                ...msg,
+                content: "Sorry, I encountered an error. Please try again.",
+                isLoading: false,
+              }
+            : msg,
+        ),
+      );
     },
   });
 
@@ -95,12 +128,30 @@ export default function ChatPage() {
     }
   }, [currentThreadId, threads]);
 
+  // Clear optimistic messages when switching threads
+  useEffect(() => {
+    setOptimisticMessages([]);
+    lastMessageCountRef.current = 0;
+  }, [currentThreadId]);
+
+  // Remove optimistic messages when real messages arrive
+  useEffect(() => {
+    if (
+      messages.length > lastMessageCountRef.current &&
+      optimisticMessages.length > 0
+    ) {
+      // New messages arrived, remove all optimistic messages
+      setOptimisticMessages([]);
+    }
+    lastMessageCountRef.current = messages.length;
+  }, [messages, optimisticMessages.length]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, optimisticMessages]);
 
   const send = async () => {
     if (!input.trim()) return;
@@ -114,6 +165,31 @@ export default function ChatPage() {
 
     const userMessage = input.trim();
     setInput("");
+
+    // Add optimistic user message immediately
+    const optimisticUserMessage = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: userMessage,
+      createdAt: new Date(),
+      isOptimistic: true,
+    };
+
+    // Add optimistic AI loading message
+    const optimisticAIMessage = {
+      id: `ai-${Date.now()}`,
+      role: "assistant",
+      content: "Give me a few seconds...",
+      createdAt: new Date(),
+      isOptimistic: true,
+      isLoading: true,
+    };
+
+    setOptimisticMessages((prev) => [
+      ...prev,
+      optimisticUserMessage,
+      optimisticAIMessage,
+    ]);
 
     // First save the user message
     addMessageMutation.mutate({
@@ -341,37 +417,93 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            messages.map((message: any) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+            <>
+              {/* Real messages from database */}
+              {messages.map((message: any) => (
                 <div
-                  className={`max-w-3xl rounded-lg px-4 py-2 ${
-                    message.role === "user"
-                      ? "bg-blue-500 text-white"
-                      : "border border-gray-200 bg-white"
+                  key={message.id}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
                   <div
-                    dangerouslySetInnerHTML={{
-                      __html: renderMarkdown(message.content),
-                    }}
-                  />
-                  <div
-                    className={`mt-1 text-xs ${
+                    className={`max-w-3xl rounded-lg px-4 py-2 ${
                       message.role === "user"
-                        ? "text-blue-100"
-                        : "text-gray-500"
+                        ? "bg-blue-500 text-white"
+                        : "border border-gray-200 bg-white"
                     }`}
                   >
-                    {new Date(message.createdAt).toLocaleTimeString()}
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: renderMarkdown(message.content),
+                      }}
+                    />
+                    <div
+                      className={`mt-1 text-xs ${
+                        message.role === "user"
+                          ? "text-blue-100"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {new Date(message.createdAt).toLocaleTimeString()}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+
+              {/* Optimistic messages */}
+              {optimisticMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-3xl rounded-lg px-4 py-2 ${
+                      message.role === "user"
+                        ? "bg-blue-500 text-white opacity-80"
+                        : message.isLoading
+                          ? "border border-gray-200 bg-gray-50"
+                          : "border border-gray-200 bg-white opacity-80"
+                    }`}
+                  >
+                    {message.isLoading ? (
+                      <div className="flex items-center space-x-3">
+                        <div className="flex space-x-1">
+                          <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-0.3s]"></div>
+                          <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-0.15s]"></div>
+                          <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400"></div>
+                        </div>
+                        <span className="font-medium text-gray-600">
+                          {message.content}
+                        </span>
+                      </div>
+                    ) : (
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: renderMarkdown(message.content),
+                        }}
+                      />
+                    )}
+                    <div
+                      className={`mt-1 text-xs ${
+                        message.role === "user"
+                          ? "text-blue-100"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {message.createdAt.toLocaleTimeString()}
+                      {message.isOptimistic && (
+                        <span className="ml-2 text-xs opacity-60">
+                          (sending...)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </div>
 

@@ -7,9 +7,9 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.access_token) {
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "No access token available" },
+        { error: "No user session available" },
         { status: 401 },
       );
     }
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const executor = new ToolExecutor(session.access_token);
+    const executor = new ToolExecutor(session.user.id);
     const results = [];
 
     for (const toolCall of toolCalls) {

@@ -63,13 +63,27 @@ async def generate_llm_response(request: GenerateRequest):
         # Get tools for the provider
         tools = get_tools_for_provider(request.model_provider)
 
-        # Generate response using LLM service with tools
-        llm_response = await llm_service.generate_response(
-            provider=request.model_provider,
-            messages=llm_messages,
-            model=request.model_name,
-            tools=tools,
-        )
+        # Check if this is a calendar-related query and use appropriate method
+        user_message = llm_messages[-1].content if llm_messages else ""
+        if llm_service.is_calendar_query(user_message):
+            print(f"DEBUG: This is a calendar-related query")
+            # Use calendar-specific response generation for better tool calling
+            conversation_history = llm_messages[:-1] if len(llm_messages) > 1 else []
+            llm_response = await llm_service.generate_calendar_response(
+                provider=request.model_provider,
+                user_message=user_message,
+                conversation_history=conversation_history,
+                model=request.model_name,
+                tools=tools,
+            )
+        else:
+            # Use standard response generation
+            llm_response = await llm_service.generate_response(
+                provider=request.model_provider,
+                messages=llm_messages,
+                model=request.model_name,
+                tools=tools,
+            )
 
         print(f"DEBUG: LLM response generated successfully")
         print(f"DEBUG: Tool calls: {llm_response.tool_calls}")

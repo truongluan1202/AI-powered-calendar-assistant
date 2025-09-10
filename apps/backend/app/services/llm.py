@@ -1,6 +1,7 @@
 """LLM service for routing requests to different providers."""
 
 import asyncio
+import json
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from enum import Enum
@@ -28,9 +29,12 @@ class LLMProvider(str, Enum):
 class LLMMessage:
     """Message structure for LLM requests."""
 
-    def __init__(self, role: str, content: str):
+    def __init__(
+        self, role: str, content: str, tool_calls: Optional[List[Dict[str, Any]]] = None
+    ):
         self.role = role
         self.content = content
+        self.tool_calls = tool_calls
 
 
 class LLMResponse:
@@ -82,7 +86,12 @@ class OpenAIProvider(BaseLLMProvider):
         self, messages: List[LLMMessage], tools: Optional[List[Dict[str, Any]]] = None
     ) -> LLMResponse:
         try:
-            openai_messages = [{"role": m.role, "content": m.content} for m in messages]
+            openai_messages = []
+            for m in messages:
+                msg = {"role": m.role, "content": m.content}
+                if m.tool_calls:
+                    msg["tool_calls"] = m.tool_calls
+                openai_messages.append(msg)
 
             # Prepare the request parameters
             request_params = {
@@ -153,8 +162,11 @@ class AnthropicProvider(BaseLLMProvider):
             for m in messages:
                 if m.role == "system":
                     system_message = m.content
-                elif m.role in ("user", "assistant"):
-                    anthropic_messages.append({"role": m.role, "content": m.content})
+                elif m.role in ("user", "assistant", "tool"):
+                    msg = {"role": m.role, "content": m.content}
+                    if m.tool_calls:
+                        msg["tool_calls"] = m.tool_calls
+                    anthropic_messages.append(msg)
 
             # Prepare request parameters
             request_params = {
@@ -237,7 +249,14 @@ class GeminiProvider(BaseLLMProvider):
                 elif msg.role == "user":
                     prompt_parts.append(f"User: {msg.content}")
                 elif msg.role == "assistant":
-                    prompt_parts.append(f"Assistant: {msg.content}")
+                    if msg.tool_calls:
+                        prompt_parts.append(
+                            f"Assistant: {msg.content} [Tool calls: {msg.tool_calls}]"
+                        )
+                    else:
+                        prompt_parts.append(f"Assistant: {msg.content}")
+                elif msg.role == "tool":
+                    prompt_parts.append(f"Tool: {msg.content}")
 
             prompt = "\n\n".join(prompt_parts)
 
@@ -247,21 +266,10 @@ class GeminiProvider(BaseLLMProvider):
                 temperature=0.7,
             )
 
-            # Add tools if provided (Gemini format)
+            # Add tools if provided (already formatted for Gemini in tools.py)
             if tools:
-                # Convert tools to Gemini function declarations format
-                function_declarations = []
-                for tool in tools:
-                    if "function" in tool:
-                        function_declarations.append(
-                            {
-                                "name": tool["function"]["name"],
-                                "description": tool["function"]["description"],
-                                "parameters": tool["function"]["parameters"],
-                            }
-                        )
-                config.tools = [{"function_declarations": function_declarations}]
-
+                config.tools = [{"function_declarations": tools}]
+                print(f"DEBUG: Tools: {len(tools)}")
             # Use the google-genai client to generate content (synchronous call)
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
@@ -283,17 +291,25 @@ class GeminiProvider(BaseLLMProvider):
                 for candidate in response.candidates:
                     if hasattr(candidate, "content") and candidate.content:
                         for part in candidate.content.parts:
+                            # print(f"DEBUG: Part: {part}")
+                            # print(f"DEBUG: Part function call: {part.function_call}")
                             if (
                                 hasattr(part, "function_call")
                                 and part.function_call is not None
                             ):
+                                print(f"DEBUG: Raw args: {part.function_call.args}")
+                                print(
+                                    f"DEBUG: Args type: {type(part.function_call.args)}"
+                                )
+                                json_args = json.dumps(part.function_call.args)
+                                print(f"DEBUG: JSON args: {json_args}")
                                 tool_calls.append(
                                     {
                                         "id": f"gemini-{hash(part.function_call.name)}",
                                         "type": "function",
                                         "function": {
                                             "name": part.function_call.name,
-                                            "arguments": str(part.function_call.args),
+                                            "arguments": json_args,
                                         },
                                     }
                                 )
@@ -374,14 +390,38 @@ class LLMService:
         conversation_history: List[LLMMessage],
         model: Optional[str] = None,
     ) -> LLMResponse:
+        from datetime import datetime
+
+        # Get current time in UTC
+        current_time = datetime.utcnow()
+        current_time_str = current_time.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
         system_message = LLMMessage(
             role="system",
             content=(
                 "You are an AI calendar assistant. Help users manage their schedules, "
                 "create events, and answer questions about their calendar. "
                 "You have access to tools to get calendar events, create new events, and search the web. "
-                "When users ask about their calendar, use the getEvents tool to fetch their events. "
-                "When users want to create events, use the createEvent tool. "
+                "\n\n"
+                f"Current time: {current_time_str} (UTC).\n"
+                f"For any calendar question, use this current time to interpret 'today', 'tomorrow', 'this week', 'this month', etc.\n\n"
+                "IMPORTANT: You MUST use tools to answer calendar-related questions. Do not try to answer "
+                "calendar questions without using the appropriate tools. Here are the key rules:\n"
+                "- For ANY question about existing events, upcoming events, or calendar queries, ALWAYS use getEvents tool\n"
+                "- For creating new events, ALWAYS use createEvent tool\n"
+                "- For general information not related to the user's calendar, use webSearch tool\n"
+                "- ALWAYS use the current time above when creating events or interpreting time references\n"
+                "\n"
+                "Examples of when to use getEvents tool:\n"
+                "- 'What's on my calendar tomorrow?' → getEvents with timeMin=tomorrow, timeMax=day after tomorrow\n"
+                "- 'What's my next event?' → getEvents with timeMin=now, maxResults=1\n"
+                "- 'Do I have any meetings today?' → getEvents with timeMin=today start, timeMax=today end\n"
+                "- 'Show me my schedule for next week' → getEvents with timeMin=next week start, timeMax=next week end\n"
+                "\n"
+                "Examples of when to use createEvent tool:\n"
+                "- 'Add a meeting with John tomorrow at 2pm' → createEvent with summary, start, end times\n"
+                "- 'Schedule a dentist appointment' → createEvent with event details\n"
+                "\n"
                 "Be helpful, concise, and professional. Always confirm actions you take."
             ),
         )
@@ -390,3 +430,81 @@ class LLMService:
             [system_message] + conversation_history + [LLMMessage("user", user_message)]
         )
         return await self.generate_response(provider, messages, model)
+
+    def is_calendar_query(self, user_message: str) -> bool:
+        """Detect if a user message is calendar-related."""
+        calendar_keywords = [
+            "calendar",
+            "event",
+            "meeting",
+            "appointment",
+            "schedule",
+            "agenda",
+            "next event",
+            "upcoming",
+            "today",
+            "tomorrow",
+            "this week",
+            "next week",
+            "add event",
+            "create event",
+            "schedule",
+            "book",
+            "plan",
+            "arrange",
+            "what's on",
+            "do i have",
+            "am i free",
+            "busy",
+            "available",
+        ]
+
+        message_lower = user_message.lower()
+        return any(keyword in message_lower for keyword in calendar_keywords)
+
+    async def generate_calendar_response(
+        self,
+        provider: str,
+        user_message: str,
+        conversation_history: List[LLMMessage],
+        model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+    ) -> LLMResponse:
+        """Generate response specifically for calendar-related queries with enhanced tool calling guidance."""
+        from datetime import datetime
+
+        # Get current time in UTC
+        current_time = datetime.utcnow()
+        current_time_str = current_time.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+        system_message = LLMMessage(
+            role="system",
+            content=(
+                "You are an AI calendar assistant. Your primary function is to help users with their calendar. "
+                "You MUST use tools to answer calendar questions - never try to answer without tools.\n\n"
+                f"Current time: {current_time_str} (UTC).\n"
+                f"For any calendar question, use this current time to interpret 'today', 'tomorrow', 'this week', 'this month', etc.\n\n"
+                "CRITICAL RULES:\n"
+                "1. For ANY question about existing events, upcoming events, or calendar queries, you MUST use getEvents tool\n"
+                "2. For creating new events, you MUST use createEvent tool\n"
+                "3. For general information not related to the user's calendar, use webSearch tool\n"
+                "4. Never say 'I don't have access to your calendar' - you DO have access via tools\n"
+                "5. ALWAYS use the current time above when creating events or interpreting time references\n\n"
+                "SPECIFIC EXAMPLES:\n"
+                "User: 'What's my next event?'\n"
+                "→ Use getEvents with timeMin=now, maxResults=1\n\n"
+                "User: 'What's on my calendar tomorrow?'\n"
+                "→ Use getEvents with timeMin=tomorrow start, timeMax=tomorrow end\n\n"
+                "User: 'Do I have any meetings today?'\n"
+                "→ Use getEvents with timeMin=today start, timeMax=today end\n\n"
+                "User: 'Add a meeting with John tomorrow at 2pm'\n"
+                "→ Use createEvent with summary='Meeting with John', start='tomorrow 2pm', end='tomorrow 3pm'\n\n"
+                "When creating events, use relative time references like 'tomorrow 2pm' and let the system convert them to proper timestamps.\n"
+                "Always use the appropriate tool first, then provide a helpful response based on the tool results."
+            ),
+        )
+
+        messages = (
+            [system_message] + conversation_history + [LLMMessage("user", user_message)]
+        )
+        return await self.generate_response(provider, messages, model, tools)

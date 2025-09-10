@@ -5,6 +5,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
+import { ToolExecutor, type ToolCall } from "~/lib/tools";
 
 export const aiRouter = createTRPCRouter({
   // Generate AI response for a chat message
@@ -92,25 +93,51 @@ export const aiRouter = createTRPCRouter({
         if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
           console.log("DEBUG: Executing tool calls:", aiResponse.tool_calls);
 
-          // Execute tool calls
-          const toolResults = await fetch("/api/tools/execute", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              toolCalls: aiResponse.tool_calls,
-            }),
-          });
+          // Execute tool calls directly
+          const executor = new ToolExecutor(ctx.session.user.id);
+          const results = [];
 
-          if (!toolResults.ok) {
-            throw new Error("Failed to execute tool calls");
+          for (const toolCall of aiResponse.tool_calls) {
+            const result = await executor.executeToolCall(toolCall as ToolCall);
+            result.tool_call_id = toolCall.id;
+            results.push(result);
           }
 
-          const { results } = await toolResults.json();
-          console.log("DEBUG: Tool results:", results);
+          // console.log("DEBUG: Tool results:", results);
+          // console.log(
+          //   "DEBUG: Tool results content:",
+          //   results.map((r) => r.content),
+          // );
 
           // Send tool results back to LLM for final response
+          const finalMessages = [
+            ...conversationHistory.map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+            })),
+            {
+              role: "assistant",
+              content: aiResponse.content,
+              tool_calls: aiResponse.tool_calls,
+            },
+            {
+              role: "tool",
+              content: JSON.stringify(
+                results.map((r) => ({
+                  tool_call_id: r.tool_call_id,
+                  content: r.content,
+                  success: r.success,
+                  error: r.error,
+                })),
+              ),
+            },
+          ];
+
+          // console.log(
+          //   "DEBUG: Sending final request to backend with messages:",
+          //   JSON.stringify(finalMessages, null, 2),
+          // );
+
           const finalResponse = await fetch(
             `${backendUrl}/api/v1/chat/generate`,
             {
@@ -119,18 +146,7 @@ export const aiRouter = createTRPCRouter({
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                messages: [
-                  ...conversationHistory,
-                  {
-                    role: "assistant",
-                    content: aiResponse.content,
-                    tool_calls: aiResponse.tool_calls,
-                  },
-                  {
-                    role: "tool",
-                    content: JSON.stringify(results),
-                  },
-                ],
+                messages: finalMessages,
                 model_provider: input.modelProvider,
                 model_name: input.modelName,
               }),
@@ -138,12 +154,18 @@ export const aiRouter = createTRPCRouter({
           );
 
           if (!finalResponse.ok) {
-            throw new Error(`Backend error: ${finalResponse.statusText}`);
+            const errorText = await finalResponse.text();
+            console.error("DEBUG: Backend error response:", errorText);
+            throw new Error(
+              `Backend error: ${finalResponse.statusText} - ${errorText}`,
+            );
           }
 
           const finalAiResponse = (await finalResponse.json()) as {
             content: string;
           };
+
+          console.log("DEBUG: Final AI response:", finalAiResponse.content);
 
           // Save the final AI response to database
           const savedMessage = await ctx.db.chatMessage.create({

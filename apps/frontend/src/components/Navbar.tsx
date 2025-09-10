@@ -60,6 +60,16 @@ export default function Navbar() {
                 >
                   Calendar Demo
                 </Link>
+                <Link
+                  href="/test-token-refresh"
+                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive("/test-token-refresh")
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  Token Tests
+                </Link>
               </>
             )}
           </div>
@@ -73,7 +83,6 @@ export default function Navbar() {
                 {/* User Info */}
                 <div className="hidden items-center space-x-2 sm:flex">
                   {session.user?.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={session.user.image}
                       alt="Profile"
@@ -91,7 +100,6 @@ export default function Navbar() {
                 {/* Mobile User Avatar */}
                 <div className="sm:hidden">
                   {session.user?.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={session.user.image}
                       alt="Profile"
@@ -158,6 +166,16 @@ export default function Navbar() {
                 }`}
               >
                 Calendar Demo
+              </Link>
+              <Link
+                href="/test-token-refresh"
+                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive("/test-token-refresh")
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                }`}
+              >
+                Token Tests
               </Link>
             </div>
           </div>
