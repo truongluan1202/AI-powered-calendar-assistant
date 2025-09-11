@@ -270,6 +270,7 @@ class GeminiProvider(BaseLLMProvider):
             if tools:
                 config.tools = [{"function_declarations": tools}]
                 print(f"DEBUG: Tools: {len(tools)}")
+                print(f"DEBUG: Tool names: {[tool['name'] for tool in tools]}")
             # Use the google-genai client to generate content (synchronous call)
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
@@ -284,6 +285,7 @@ class GeminiProvider(BaseLLMProvider):
             content = (
                 response.text if hasattr(response, "text") and response.text else ""
             )
+            print(f"DEBUG: Gemini response content: {content}")
 
             # Extract tool calls if present (Gemini format)
             tool_calls = []
@@ -429,7 +431,109 @@ class LLMService:
         messages = (
             [system_message] + conversation_history + [LLMMessage("user", user_message)]
         )
-        return await self.generate_response(provider, messages, model)
+
+        # Define the available tools
+        tools = [
+            {
+                "name": "getEvents",
+                "description": "Get events from Google Calendar",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "timeMin": {
+                            "type": "string",
+                            "description": "Lower bound (exclusive) for an event's end time to filter by",
+                        },
+                        "timeMax": {
+                            "type": "string",
+                            "description": "Upper bound (exclusive) for an event's start time to filter by",
+                        },
+                        "maxResults": {
+                            "type": "integer",
+                            "description": "Maximum number of events returned on one result page",
+                        },
+                        "query": {
+                            "type": "string",
+                            "description": "Free text search terms to find events that match these terms",
+                        },
+                        "calendarId": {
+                            "type": "string",
+                            "description": "Calendar identifier. Default is 'primary'",
+                        },
+                    },
+                },
+            },
+            {
+                "name": "createEvent",
+                "description": "Create a new event in Google Calendar",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "summary": {"type": "string", "description": "The event title"},
+                        "description": {
+                            "type": "string",
+                            "description": "Description of the event",
+                        },
+                        "start": {
+                            "type": "object",
+                            "properties": {
+                                "dateTime": {
+                                    "type": "string",
+                                    "description": "Event start time in RFC3339 format",
+                                },
+                                "timeZone": {
+                                    "type": "string",
+                                    "description": "Time zone of the event",
+                                },
+                            },
+                        },
+                        "end": {
+                            "type": "object",
+                            "properties": {
+                                "dateTime": {
+                                    "type": "string",
+                                    "description": "Event end time in RFC3339 format",
+                                },
+                                "timeZone": {
+                                    "type": "string",
+                                    "description": "Time zone of the event",
+                                },
+                            },
+                        },
+                        "location": {
+                            "type": "string",
+                            "description": "Geographic location of the event",
+                        },
+                        "attendees": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "description": "Attendee's email address",
+                                    }
+                                },
+                            },
+                        },
+                    },
+                    "required": ["summary", "start", "end"],
+                },
+            },
+            {
+                "name": "webSearch",
+                "description": "Search the web for information",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Search query"}
+                    },
+                    "required": ["query"],
+                },
+            },
+        ]
+
+        return await self.generate_response(provider, messages, model, tools)
 
     def is_calendar_query(self, user_message: str) -> bool:
         """Detect if a user message is calendar-related."""

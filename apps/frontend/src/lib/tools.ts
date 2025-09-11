@@ -28,7 +28,7 @@ export class ToolExecutor {
   private convertTimeReference(timeRef: string): string {
     const now = new Date();
 
-    // Handle complex time references like "tomorrow 2pm"
+    // Handle complex time references like "tomorrow 2pm", "next week monday 3pm", etc.
     if (timeRef.includes("tomorrow")) {
       const tomorrow = new Date(now);
       tomorrow.setDate(now.getDate() + 1);
@@ -70,6 +70,53 @@ export class ToolExecutor {
       }
 
       return today.toISOString();
+    }
+
+    // Handle "next week" references
+    if (timeRef.includes("next week")) {
+      const nextWeek = new Date(now);
+      nextWeek.setDate(now.getDate() + 7);
+
+      // Extract day of week if present
+      const dayMatch =
+        /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.exec(
+          timeRef,
+        );
+      if (dayMatch && dayMatch[1]) {
+        const targetDay = dayMatch[1].toLowerCase();
+        const dayMap: { [key: string]: number } = {
+          sunday: 0,
+          monday: 1,
+          tuesday: 2,
+          wednesday: 3,
+          thursday: 4,
+          friday: 5,
+          saturday: 6,
+        };
+        const targetDayNum = dayMap[targetDay];
+        if (targetDayNum !== undefined) {
+          const currentDay = nextWeek.getDay();
+          const daysToAdd = (targetDayNum - currentDay + 7) % 7;
+          nextWeek.setDate(nextWeek.getDate() + daysToAdd);
+        }
+      }
+
+      // Extract time if present
+      const timeMatch = /(\d{1,2}):?(\d{0,2})\s*(am|pm)?/i.exec(timeRef);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1]!);
+        const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+        const ampm = timeMatch[3]?.toLowerCase();
+
+        if (ampm === "pm" && hours !== 12) hours += 12;
+        if (ampm === "am" && hours === 12) hours = 0;
+
+        nextWeek.setHours(hours, minutes, 0, 0);
+      } else {
+        nextWeek.setHours(0, 0, 0, 0);
+      }
+
+      return nextWeek.toISOString();
     }
 
     switch (timeRef.toLowerCase()) {
@@ -226,20 +273,39 @@ export class ToolExecutor {
       const calendarId = args.calendarId || "primary";
       const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
 
-      // Convert time references to proper datetime format
-      const startTime = this.convertTimeReference(args.start);
-      const endTime = this.convertTimeReference(args.end);
+      // Handle start and end times - they should be objects with dateTime and timeZone
+      let startTime, endTime;
+
+      if (args.start?.dateTime) {
+        // If it's already a proper datetime object, use it
+        startTime = args.start.dateTime;
+      } else if (typeof args.start === "string") {
+        // If it's a string, convert it
+        startTime = this.convertTimeReference(args.start);
+      } else {
+        throw new Error("Invalid start time format");
+      }
+
+      if (args.end?.dateTime) {
+        // If it's already a proper datetime object, use it
+        endTime = args.end.dateTime;
+      } else if (typeof args.end === "string") {
+        // If it's a string, convert it
+        endTime = this.convertTimeReference(args.end);
+      } else {
+        throw new Error("Invalid end time format");
+      }
 
       const eventData = {
         summary: args.summary,
         description: args.description,
         start: {
           dateTime: startTime,
-          timeZone: "UTC",
+          timeZone: args.start?.timeZone || "UTC",
         },
         end: {
           dateTime: endTime,
-          timeZone: "UTC",
+          timeZone: args.end?.timeZone || "UTC",
         },
         location: args.location,
         attendees: args.attendees,

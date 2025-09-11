@@ -14,7 +14,7 @@ export const aiRouter = createTRPCRouter({
       z.object({
         threadId: z.string(),
         message: z.string(),
-        modelProvider: z.enum(["openai", "anthropic", "gemini"]),
+        modelProvider: z.enum(["gemini"]),
         modelName: z.string(),
       }),
     )
@@ -180,6 +180,8 @@ export const aiRouter = createTRPCRouter({
           return {
             message: savedMessage,
             content: finalAiResponse.content,
+            toolCalls: aiResponse.tool_calls,
+            toolResults: results,
           };
         } else {
           // No tool calls, save the regular response
@@ -220,18 +222,6 @@ export const aiRouter = createTRPCRouter({
       console.error("Error fetching providers:", error);
       // Return fallback providers if backend is unavailable
       return {
-        openai: {
-          available: !!process.env.OPENAI_API_KEY,
-          models: ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
-        },
-        anthropic: {
-          available: !!process.env.ANTHROPIC_API_KEY,
-          models: [
-            "claude-3-sonnet-20240229",
-            "claude-3-haiku-20240307",
-            "claude-3-opus-20240229",
-          ],
-        },
         gemini: {
           available: !!process.env.GEMINI_API_KEY,
           models: [
