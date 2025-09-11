@@ -41,16 +41,6 @@ export default function Navbar() {
                   Chat
                 </Link>
                 <Link
-                  href="/profile"
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive("/profile")
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Profile
-                </Link>
-                <Link
                   href="/calendar-demo"
                   className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                     isActive("/calendar-demo")
@@ -81,7 +71,10 @@ export default function Navbar() {
             ) : session ? (
               <div className="flex items-center space-x-3">
                 {/* User Info */}
-                <div className="hidden items-center space-x-2 sm:flex">
+                <Link
+                  href="/profile"
+                  className="hidden items-center space-x-2 transition-opacity hover:opacity-80 sm:flex"
+                >
                   {session.user?.image && (
                     <img
                       src={session.user.image}
@@ -95,10 +88,13 @@ export default function Navbar() {
                     </p>
                     <p className="text-gray-500">{session.user?.email}</p>
                   </div>
-                </div>
+                </Link>
 
                 {/* Mobile User Avatar */}
-                <div className="sm:hidden">
+                <Link
+                  href="/profile"
+                  className="transition-opacity hover:opacity-80 sm:hidden"
+                >
                   {session.user?.image ? (
                     <img
                       src={session.user.image}
@@ -112,7 +108,7 @@ export default function Navbar() {
                       </span>
                     </div>
                   )}
-                </div>
+                </Link>
 
                 {/* Sign Out Button */}
                 <button
@@ -146,16 +142,6 @@ export default function Navbar() {
                 }`}
               >
                 Chat
-              </Link>
-              <Link
-                href="/profile"
-                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive("/profile")
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                Profile
               </Link>
               <Link
                 href="/calendar-demo"

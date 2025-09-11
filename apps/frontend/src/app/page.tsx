@@ -29,35 +29,19 @@ export default function HomePage() {
             </p>
             <div className="mx-auto mt-5 max-w-md sm:flex sm:justify-center md:mt-8">
               {session ? (
-                <div className="space-y-3 sm:flex sm:space-y-0 sm:space-x-3">
-                  <Link
-                    href="/chat"
-                    className="flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-8 py-3 text-base font-medium text-white hover:bg-blue-700 md:px-10 md:py-4 md:text-lg"
-                  >
-                    Start Chatting
-                  </Link>
-                  <Link
-                    href="/profile"
-                    className="flex w-full items-center justify-center rounded-md border border-transparent bg-blue-100 px-8 py-3 text-base font-medium text-blue-700 hover:bg-blue-200 md:px-10 md:py-4 md:text-lg"
-                  >
-                    View Profile
-                  </Link>
-                </div>
+                <Link
+                  href="/chat"
+                  className="flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-8 py-3 text-base font-medium text-white hover:bg-blue-700 md:px-10 md:py-4 md:text-lg"
+                >
+                  Start Chatting
+                </Link>
               ) : (
-                <div className="space-y-3 sm:flex sm:space-y-0 sm:space-x-3">
-                  <Link
-                    href="/api/auth/signin"
-                    className="flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-8 py-3 text-base font-medium text-white hover:bg-blue-700 md:px-10 md:py-4 md:text-lg"
-                  >
-                    Get Started
-                  </Link>
-                  <Link
-                    href="/auth-test"
-                    className="flex w-full items-center justify-center rounded-md border border-transparent bg-blue-100 px-8 py-3 text-base font-medium text-blue-700 hover:bg-blue-200 md:px-10 md:py-4 md:text-lg"
-                  >
-                    Test Auth
-                  </Link>
-                </div>
+                <Link
+                  href="/api/auth/signin"
+                  className="flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-8 py-3 text-base font-medium text-white hover:bg-blue-700 md:px-10 md:py-4 md:text-lg"
+                >
+                  Get Started
+                </Link>
               )}
             </div>
           </div>
