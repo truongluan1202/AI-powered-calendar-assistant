@@ -182,6 +182,8 @@ export default function ChatPage() {
 
     setEventsLoading(true);
     setEventsError(null);
+    // Clear optimistic events when refreshing
+    setOptimisticEvents([]);
 
     try {
       const timeMin = new Date(
@@ -373,9 +375,12 @@ export default function ChatPage() {
     const userMessage = input.trim();
     setInput("");
 
-    // Check if this looks like an event creation request
+    // Check if this looks like an event creation request (more specific)
     const isEventCreation =
-      /create|schedule|add|book|plan|arrange|meeting|appointment|event/i.test(
+      /(create|schedule|add|book|plan|arrange)\s+(a\s+)?(meeting|appointment|event|call|conference)/i.test(
+        userMessage,
+      ) ||
+      /(meeting|appointment|event|call|conference)\s+(with|for|at)/i.test(
         userMessage,
       );
 
