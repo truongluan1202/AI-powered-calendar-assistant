@@ -82,9 +82,9 @@ export class ToolExecutor {
         /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.exec(
           timeRef,
         );
-      if (dayMatch && dayMatch[1]) {
+      if (dayMatch?.[1]) {
         const targetDay = dayMatch[1].toLowerCase();
-        const dayMap: { [key: string]: number } = {
+        const dayMap: Record<string, number> = {
           sunday: 0,
           monday: 1,
           tuesday: 2,
