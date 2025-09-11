@@ -29,38 +29,16 @@ export default function Navbar() {
           {/* Navigation Links */}
           <div className="hidden items-center space-x-8 md:flex">
             {session && (
-              <>
-                <Link
-                  href="/chat"
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive("/chat")
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Chat
-                </Link>
-                <Link
-                  href="/calendar-demo"
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive("/calendar-demo")
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Calendar Demo
-                </Link>
-                <Link
-                  href="/test-token-refresh"
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive("/test-token-refresh")
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Token Tests
-                </Link>
-              </>
+              <Link
+                href="/chat"
+                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive("/chat")
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                }`}
+              >
+                Chat
+              </Link>
             )}
           </div>
 
@@ -142,26 +120,6 @@ export default function Navbar() {
                 }`}
               >
                 Chat
-              </Link>
-              <Link
-                href="/calendar-demo"
-                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive("/calendar-demo")
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                Calendar Demo
-              </Link>
-              <Link
-                href="/test-token-refresh"
-                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive("/test-token-refresh")
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                Token Tests
               </Link>
             </div>
           </div>

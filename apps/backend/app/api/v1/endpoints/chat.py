@@ -110,20 +110,8 @@ async def generate_llm_response(request: GenerateRequest):
 async def get_available_providers():
     """Get list of available LLM providers."""
     return {
-        "available_providers": llm_service.get_available_providers(),
+        "available_providers": ["gemini"],
         "providers": {
-            "openai": {
-                "available": llm_service.is_provider_available("openai"),
-                "models": ["gpt-4", "gpt-3.5-turbo", "gpt-4-turbo"],
-            },
-            "anthropic": {
-                "available": llm_service.is_provider_available("anthropic"),
-                "models": [
-                    "claude-3-sonnet-20240229",
-                    "claude-3-haiku-20240307",
-                    "claude-3-opus-20240229",
-                ],
-            },
             "gemini": {
                 "available": llm_service.is_provider_available("gemini"),
                 "models": [

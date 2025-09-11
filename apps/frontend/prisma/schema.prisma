@@ -72,7 +72,7 @@ model ChatThread {
   id            String   @id @default(cuid())
   userId        String
   title         String
-  modelProvider String   @map("model_provider") // "openai" | "anthropic" | "gemini"
+  modelProvider String   @map("model_provider") // "gemini"
   modelName     String   @map("model_name")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

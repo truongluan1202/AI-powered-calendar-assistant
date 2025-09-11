@@ -24,7 +24,7 @@ export const chatRouter = createTRPCRouter({
     .input(
       z.object({
         title: z.string().min(1),
-        modelProvider: z.enum(["openai", "anthropic", "gemini"]),
+        modelProvider: z.enum(["gemini"]),
         modelName: z.string().min(1),
       }),
     )
@@ -113,6 +113,31 @@ export const chatRouter = createTRPCRouter({
         },
         data: {
           title: input.title,
+        },
+      });
+    }),
+
+  // Update thread model
+  updateThreadModel: protectedProcedure
+    .input(
+      z.object({
+        threadId: z.string(),
+        modelName: z.enum([
+          "gemini-2.5-flash-lite",
+          "gemini-2.0-flash-lite",
+          "gemini-2.5-flash",
+          "gemini-2.0-flash",
+        ]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.chatThread.update({
+        where: {
+          id: input.threadId,
+          userId: ctx.session.user.id, // Ensure user owns the thread
+        },
+        data: {
+          modelName: input.modelName,
         },
       });
     }),
