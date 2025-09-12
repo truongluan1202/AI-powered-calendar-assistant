@@ -270,6 +270,8 @@ export class ToolExecutor {
 
   private async createEvent(args: any): Promise<ToolResult> {
     try {
+      console.log("DEBUG: createEvent args:", JSON.stringify(args, null, 2));
+
       const calendarId = args.calendarId || "primary";
       const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
 
@@ -279,9 +281,12 @@ export class ToolExecutor {
       if (args.start?.dateTime) {
         // If it's already a proper datetime object, use it
         startTime = args.start.dateTime;
+        console.log("DEBUG: Using provided start time:", startTime);
       } else if (typeof args.start === "string") {
         // If it's a string, convert it
+        console.log("DEBUG: Converting start time string:", args.start);
         startTime = this.convertTimeReference(args.start);
+        console.log("DEBUG: Converted start time:", startTime);
       } else {
         throw new Error("Invalid start time format");
       }
@@ -289,9 +294,12 @@ export class ToolExecutor {
       if (args.end?.dateTime) {
         // If it's already a proper datetime object, use it
         endTime = args.end.dateTime;
+        console.log("DEBUG: Using provided end time:", endTime);
       } else if (typeof args.end === "string") {
         // If it's a string, convert it
+        console.log("DEBUG: Converting end time string:", args.end);
         endTime = this.convertTimeReference(args.end);
+        console.log("DEBUG: Converted end time:", endTime);
       } else {
         throw new Error("Invalid end time format");
       }
@@ -301,15 +309,28 @@ export class ToolExecutor {
         description: args.description,
         start: {
           dateTime: startTime,
-          timeZone: args.start?.timeZone || "UTC",
+          timeZone:
+            args.start?.timeZone ||
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         end: {
           dateTime: endTime,
-          timeZone: args.end?.timeZone || "UTC",
+          timeZone:
+            args.end?.timeZone ||
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         location: args.location,
         attendees: args.attendees,
       };
+
+      console.log(
+        "DEBUG: Final event data:",
+        JSON.stringify(eventData, null, 2),
+      );
+      console.log(
+        "DEBUG: User timezone:",
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
 
       const response = await makeGoogleApiCall(
         url,

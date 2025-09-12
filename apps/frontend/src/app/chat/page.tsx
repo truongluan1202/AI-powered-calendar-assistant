@@ -33,6 +33,9 @@ export default function ChatPage() {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isExecutingTool, setIsExecutingTool] = useState(false);
+  const [streamingText, setStreamingText] = useState<string>("");
+  const [isStreaming, setIsStreaming] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const hasInitialized = useRef<boolean>(false);
   const lastMessageCountRef = useRef<number>(0);
@@ -43,6 +46,24 @@ export default function ChatPage() {
     setTimeout(() => {
       setToastMessage(null);
     }, 3000);
+  };
+
+  // Streaming text effect
+  const streamText = (text: string, onComplete?: () => void) => {
+    setIsStreaming(true);
+    setStreamingText("");
+
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < text.length) {
+        setStreamingText(text.slice(0, index + 1));
+        index++;
+      } else {
+        clearInterval(interval);
+        setIsStreaming(false);
+        onComplete?.();
+      }
+    }, 20); // Adjust speed as needed (20ms per character)
   };
 
   // tRPC queries and mutations
@@ -116,10 +137,52 @@ export default function ChatPage() {
 
   const generateAIResponseMutation = api.ai.generateResponse.useMutation({
     onSuccess: (data) => {
-      void refetchMessages();
+      // Don't refetch messages immediately - we'll do it after streaming
+
+      // Clear optimistic messages after a short delay
+      setTimeout(() => {
+        setOptimisticMessages([]);
+        setIsExecutingTool(false);
+
+        // Start streaming the final response
+        if (data.content) {
+          streamText(data.content, () => {
+            // Streaming completed, now fetch and show real messages
+            void refetchMessages();
+            setStreamingText("");
+          });
+        } else {
+          // No content to stream, just fetch messages
+          void refetchMessages();
+        }
+      }, 500);
 
       // Check if there were tool calls for event creation
       if (data.toolCalls && data.toolCalls.length > 0) {
+        // Set tool execution state to show calendar access message
+        setIsExecutingTool(true);
+
+        // Check if it's a calendar-related tool call
+        const hasCalendarTool = data.toolCalls.some(
+          (call: any) =>
+            call.function.name === "getEvents" ||
+            call.function.name === "createEvent",
+        );
+
+        if (hasCalendarTool) {
+          // Update optimistic message to show calendar access
+          setOptimisticMessages((prev) =>
+            prev.map((msg) =>
+              msg.role === "assistant" && msg.isOptimistic
+                ? {
+                    ...msg,
+                    content: "Accessing Google Calendar now...",
+                    isLoading: true,
+                  }
+                : msg,
+            ),
+          );
+        }
         const createEventCalls = data.toolCalls.filter(
           (call: any) => call.function.name === "createEvent",
         );
@@ -166,6 +229,7 @@ export default function ChatPage() {
             : msg,
         ),
       );
+      setIsExecutingTool(false);
 
       // Remove optimistic events on error
       setOptimisticEvents((prev) => prev.slice(0, -1));
@@ -340,20 +404,54 @@ export default function ChatPage() {
   // Clear optimistic messages when switching threads
   useEffect(() => {
     setOptimisticMessages([]);
+    setStreamingText("");
+    setIsStreaming(false);
     lastMessageCountRef.current = 0;
   }, [currentThreadId]);
 
-  // Remove optimistic messages when real messages arrive
+  // Update optimistic AI message to show loading state, remove user messages
   useEffect(() => {
     if (
       messages.length > lastMessageCountRef.current &&
       optimisticMessages.length > 0
     ) {
-      // New messages arrived, remove all optimistic messages
-      setOptimisticMessages([]);
+      // New messages arrived, remove optimistic user messages but keep AI message with loading
+      setOptimisticMessages((prev) =>
+        prev
+          .filter((msg) => msg.role !== "user") // Remove optimistic user messages
+          .map((msg) =>
+            msg.role === "assistant" && msg.isOptimistic
+              ? {
+                  ...msg,
+                  content: "I'm processing your request...",
+                  isLoading: true,
+                }
+              : msg,
+          ),
+      );
+      // Clear streaming text when new messages arrive
+      setStreamingText("");
+      setIsStreaming(false);
     }
     lastMessageCountRef.current = messages.length;
   }, [messages, optimisticMessages.length]);
+
+  // Update optimistic AI message when mutation is pending
+  useEffect(() => {
+    if (generateAIResponseMutation.isPending && optimisticMessages.length > 0) {
+      setOptimisticMessages((prev) =>
+        prev.map((msg) =>
+          msg.role === "assistant" && msg.isOptimistic
+            ? {
+                ...msg,
+                content: "I'm processing your request...",
+                isLoading: true,
+              }
+            : msg,
+        ),
+      );
+    }
+  }, [generateAIResponseMutation.isPending, optimisticMessages.length]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -397,7 +495,7 @@ export default function ChatPage() {
     const optimisticAIMessage = {
       id: `ai-${Date.now()}`,
       role: "assistant",
-      content: "Give me a few seconds...",
+      content: "I'm processing your request...",
       createdAt: new Date(),
       isOptimistic: true,
       isLoading: true,
@@ -741,6 +839,22 @@ export default function ChatPage() {
                   </div>
                 ))}
 
+                {/* Streaming text display */}
+                {isStreaming && streamingText && (
+                  <div className="flex justify-start">
+                    <div className="max-w-3xl rounded-lg border border-gray-200 bg-white px-4 py-2">
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: renderMarkdown(streamingText),
+                        }}
+                      />
+                      <div className="mt-1 text-xs text-gray-500">
+                        {new Date().toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Optimistic messages */}
                 {optimisticMessages.map((message) => (
                   <div
@@ -752,10 +866,10 @@ export default function ChatPage() {
                     <div
                       className={`max-w-3xl rounded-lg px-4 py-2 ${
                         message.role === "user"
-                          ? "bg-blue-500 text-white opacity-80"
+                          ? "bg-blue-500 text-white"
                           : message.isLoading
                             ? "border border-gray-200 bg-gray-50"
-                            : "border border-gray-200 bg-white opacity-80"
+                            : "border border-gray-200 bg-white"
                       }`}
                     >
                       {message.isLoading ? (
@@ -784,11 +898,6 @@ export default function ChatPage() {
                         }`}
                       >
                         {message.createdAt.toLocaleTimeString()}
-                        {message.isOptimistic && (
-                          <span className="ml-2 text-xs opacity-60">
-                            (sending...)
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
