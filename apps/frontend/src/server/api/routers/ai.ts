@@ -53,13 +53,6 @@ export const aiRouter = createTRPCRouter({
       // Call the FastAPI backend for LLM processing
       const backendUrl = process.env.BACKEND_URL ?? "http://localhost:8000";
 
-      console.log("DEBUG: Sending request to backend:", {
-        threadId: input.threadId,
-        modelProvider: input.modelProvider,
-        modelName: input.modelName,
-        messageCount: conversationHistory.length,
-      });
-
       try {
         const response = await fetch(`${backendUrl}/api/v1/chat/generate`, {
           method: "POST",
@@ -91,8 +84,6 @@ export const aiRouter = createTRPCRouter({
 
         // If there are tool calls, execute them
         if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
-          console.log("DEBUG: Executing tool calls:", aiResponse.tool_calls);
-
           // Execute tool calls directly
           const executor = new ToolExecutor(ctx.session.user.id);
           const results = [];
@@ -102,12 +93,6 @@ export const aiRouter = createTRPCRouter({
             result.tool_call_id = toolCall.id;
             results.push(result);
           }
-
-          // console.log("DEBUG: Tool results:", results);
-          // console.log(
-          //   "DEBUG: Tool results content:",
-          //   results.map((r) => r.content),
-          // );
 
           // Send tool results back to LLM for final response
           const finalMessages = [
@@ -133,11 +118,6 @@ export const aiRouter = createTRPCRouter({
             },
           ];
 
-          // console.log(
-          //   "DEBUG: Sending final request to backend with messages:",
-          //   JSON.stringify(finalMessages, null, 2),
-          // );
-
           const finalResponse = await fetch(
             `${backendUrl}/api/v1/chat/generate`,
             {
@@ -155,7 +135,7 @@ export const aiRouter = createTRPCRouter({
 
           if (!finalResponse.ok) {
             const errorText = await finalResponse.text();
-            console.error("DEBUG: Backend error response:", errorText);
+            console.error("Backend error response:", errorText);
             throw new Error(
               `Backend error: ${finalResponse.statusText} - ${errorText}`,
             );
@@ -164,8 +144,6 @@ export const aiRouter = createTRPCRouter({
           const finalAiResponse = (await finalResponse.json()) as {
             content: string;
           };
-
-          console.log("DEBUG: Final AI response:", finalAiResponse.content);
 
           // Save the final AI response to database
           const savedMessage = await ctx.db.chatMessage.create({
@@ -201,7 +179,30 @@ export const aiRouter = createTRPCRouter({
         }
       } catch (error) {
         console.error("AI generation error:", error);
-        throw new Error("Failed to generate AI response");
+
+        // Provide more specific error messages based on the error type
+        if (error instanceof TypeError && error.message.includes("fetch")) {
+          throw new Error(
+            "Unable to connect to AI service. Please check if the backend is running.",
+          );
+        } else if (error instanceof Error) {
+          if (error.message.includes("Backend error")) {
+            throw new Error(`AI service error: ${error.message}`);
+          } else if (
+            error.message.includes("ECONNREFUSED") ||
+            error.message.includes("ENOTFOUND")
+          ) {
+            throw new Error(
+              "AI service is unavailable. Please try again later.",
+            );
+          } else {
+            throw new Error(`AI generation failed: ${error.message}`);
+          }
+        } else {
+          throw new Error(
+            "An unexpected error occurred while generating the AI response.",
+          );
+        }
       }
     }),
 

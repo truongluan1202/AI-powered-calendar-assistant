@@ -26,12 +26,54 @@ export class ToolExecutor {
   }
 
   private convertTimeReference(timeRef: string): string {
+    // Create a date in Australian timezone for consistency
     const now = new Date();
+    // Always use Australian timezone for debugging
+    const userTimezone = "Australia/Sydney";
+
+    // Convert current time to Australian timezone
+    // Use a more reliable method to get Australian time
+    const ausTime = new Date(
+      now.toLocaleString("en-US", { timeZone: "Australia/Sydney" }),
+    );
+
+    // Alternative method using Intl.DateTimeFormat for more reliable timezone conversion
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Australia/Sydney",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(now);
+    const ausTimeAlt = new Date(
+      parseInt(parts.find((p) => p.type === "year")?.value || "0"),
+      parseInt(parts.find((p) => p.type === "month")?.value || "1") - 1,
+      parseInt(parts.find((p) => p.type === "day")?.value || "1"),
+      parseInt(parts.find((p) => p.type === "hour")?.value || "0"),
+      parseInt(parts.find((p) => p.type === "minute")?.value || "0"),
+      parseInt(parts.find((p) => p.type === "second")?.value || "0"),
+    );
+
+    // Use the more reliable timezone conversion
+    const finalAusTime = ausTimeAlt;
+
+    // Additional debugging for today calculation
+    if (timeRef.toLowerCase() === "today") {
+      const todayStart = new Date(
+        finalAusTime.getFullYear(),
+        finalAusTime.getMonth(),
+        finalAusTime.getDate(),
+      );
+    }
 
     // Handle complex time references like "tomorrow 2pm", "next week monday 3pm", etc.
     if (timeRef.includes("tomorrow")) {
-      const tomorrow = new Date(now);
-      tomorrow.setDate(now.getDate() + 1);
+      const tomorrow = new Date(finalAusTime);
+      tomorrow.setDate(finalAusTime.getDate() + 1);
 
       // Extract time if present
       const timeMatch = /(\d{1,2}):?(\d{0,2})\s*(am|pm)?/i.exec(timeRef);
@@ -48,12 +90,13 @@ export class ToolExecutor {
         tomorrow.setHours(0, 0, 0, 0);
       }
 
-      return tomorrow.toISOString();
+      // Format as RFC3339 with local timezone
+      return this.formatDateTimeForCalendar(tomorrow, userTimezone);
     }
 
     // Handle "today" with time
     if (timeRef.includes("today")) {
-      const today = new Date(now);
+      const today = new Date(finalAusTime);
 
       const timeMatch = /(\d{1,2}):?(\d{0,2})\s*(am|pm)?/i.exec(timeRef);
       if (timeMatch) {
@@ -69,13 +112,14 @@ export class ToolExecutor {
         today.setHours(0, 0, 0, 0);
       }
 
-      return today.toISOString();
+      // Format as RFC3339 with local timezone
+      return this.formatDateTimeForCalendar(today, userTimezone);
     }
 
     // Handle "next week" references
     if (timeRef.includes("next week")) {
-      const nextWeek = new Date(now);
-      nextWeek.setDate(now.getDate() + 7);
+      const nextWeek = new Date(finalAusTime);
+      nextWeek.setDate(finalAusTime.getDate() + 7);
 
       // Extract day of week if present
       const dayMatch =
@@ -116,33 +160,58 @@ export class ToolExecutor {
         nextWeek.setHours(0, 0, 0, 0);
       }
 
-      return nextWeek.toISOString();
+      // Format as RFC3339 with local timezone
+      return this.formatDateTimeForCalendar(nextWeek, userTimezone);
+    }
+
+    // Handle "X days ago" references
+    if (timeRef.includes("days ago")) {
+      const daysMatch = /(\d+)\s+days?\s+ago/i.exec(timeRef);
+      if (daysMatch?.[1]) {
+        const daysAgo = parseInt(daysMatch[1]);
+        const pastDate = new Date(finalAusTime);
+        pastDate.setDate(finalAusTime.getDate() - daysAgo);
+        pastDate.setHours(0, 0, 0, 0);
+        return this.formatDateTimeForCalendar(pastDate, userTimezone);
+      }
+    }
+
+    // Handle "X days from now" references
+    if (timeRef.includes("days from now")) {
+      const daysMatch = /(\d+)\s+days?\s+from\s+now/i.exec(timeRef);
+      if (daysMatch?.[1]) {
+        const daysFromNow = parseInt(daysMatch[1]);
+        const futureDate = new Date(finalAusTime);
+        futureDate.setDate(finalAusTime.getDate() + daysFromNow);
+        futureDate.setHours(23, 59, 59, 999);
+        return this.formatDateTimeForCalendar(futureDate, userTimezone);
+      }
     }
 
     switch (timeRef.toLowerCase()) {
       case "now":
-        return now.toISOString();
+        return this.formatDateTimeForCalendar(finalAusTime, userTimezone);
       case "today":
         const todayStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
+          finalAusTime.getFullYear(),
+          finalAusTime.getMonth(),
+          finalAusTime.getDate(),
         );
-        return todayStart.toISOString();
+        return this.formatDateTimeForCalendar(todayStart, userTimezone);
       case "tomorrow":
         const tomorrowStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate() + 1,
+          finalAusTime.getFullYear(),
+          finalAusTime.getMonth(),
+          finalAusTime.getDate() + 1,
         );
-        return tomorrowStart.toISOString();
+        return this.formatDateTimeForCalendar(tomorrowStart, userTimezone);
       case "yesterday":
         const yesterdayStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate() - 1,
+          finalAusTime.getFullYear(),
+          finalAusTime.getMonth(),
+          finalAusTime.getDate() - 1,
         );
-        return yesterdayStart.toISOString();
+        return this.formatDateTimeForCalendar(yesterdayStart, userTimezone);
       default:
         // If it's already a valid ISO string or RFC3339, return as-is
         if (
@@ -153,8 +222,28 @@ export class ToolExecutor {
           return timeRef;
         }
         // Otherwise, assume it's a relative reference and return current time
-        return now.toISOString();
+        return finalAusTime.toISOString();
     }
+  }
+
+  private formatDateTimeForCalendar(date: Date, timezone: string): string {
+    // Format the date as RFC3339 with Australian timezone
+    // This ensures Google Calendar interprets the time correctly in Australian timezone
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    // Use Australian timezone offset (AEST/AEDT)
+    // Australia/Sydney is UTC+10 (AEST) or UTC+11 (AEDT)
+    // For simplicity, we'll use UTC+10 (AEST) - you can make this dynamic if needed
+    const offsetHours = 10;
+    const offsetMinutes = 0;
+    const offsetSign = "+";
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${String(offsetHours).padStart(2, "0")}:${String(offsetMinutes).padStart(2, "0")}`;
   }
 
   async executeToolCall(toolCall: ToolCall): Promise<ToolResult> {
@@ -162,9 +251,6 @@ export class ToolExecutor {
       const { name, arguments: argsStr } = toolCall.function;
       const args = JSON.parse(argsStr);
 
-      console.log(
-        `DEBUG: Executing tool call: ${name} with arguments: ${args}`,
-      );
       switch (name) {
         case "getEvents":
           return await this.getEvents(args);
@@ -196,19 +282,11 @@ export class ToolExecutor {
 
       // Convert relative time references to proper RFC3339 timestamps
       if (args.timeMin) {
-        console.log(
-          `DEBUG: Converting timeMin from '${args.timeMin}' to RFC3339`,
-        );
         const timeMin = this.convertTimeReference(args.timeMin);
-        console.log(`DEBUG: Converted timeMin to: ${timeMin}`);
         params.append("timeMin", timeMin);
       }
       if (args.timeMax) {
-        console.log(
-          `DEBUG: Converting timeMax from '${args.timeMax}' to RFC3339`,
-        );
         const timeMax = this.convertTimeReference(args.timeMax);
-        console.log(`DEBUG: Converted timeMax to: ${timeMax}`);
         params.append("timeMax", timeMax);
       }
       if (args.query) params.append("q", args.query);
@@ -217,9 +295,6 @@ export class ToolExecutor {
 
       const calendarId = args.calendarId || "primary";
       const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`;
-
-      console.log(`DEBUG: Google Calendar API URL: ${url}`);
-      console.log(`DEBUG: URL params: ${params.toString()}`);
 
       const response = await makeGoogleApiCall(
         url,
@@ -270,8 +345,6 @@ export class ToolExecutor {
 
   private async createEvent(args: any): Promise<ToolResult> {
     try {
-      console.log("DEBUG: createEvent args:", JSON.stringify(args, null, 2));
-
       const calendarId = args.calendarId || "primary";
       const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
 
@@ -281,12 +354,9 @@ export class ToolExecutor {
       if (args.start?.dateTime) {
         // If it's already a proper datetime object, use it
         startTime = args.start.dateTime;
-        console.log("DEBUG: Using provided start time:", startTime);
       } else if (typeof args.start === "string") {
         // If it's a string, convert it
-        console.log("DEBUG: Converting start time string:", args.start);
         startTime = this.convertTimeReference(args.start);
-        console.log("DEBUG: Converted start time:", startTime);
       } else {
         throw new Error("Invalid start time format");
       }
@@ -294,43 +364,30 @@ export class ToolExecutor {
       if (args.end?.dateTime) {
         // If it's already a proper datetime object, use it
         endTime = args.end.dateTime;
-        console.log("DEBUG: Using provided end time:", endTime);
       } else if (typeof args.end === "string") {
         // If it's a string, convert it
-        console.log("DEBUG: Converting end time string:", args.end);
         endTime = this.convertTimeReference(args.end);
-        console.log("DEBUG: Converted end time:", endTime);
       } else {
         throw new Error("Invalid end time format");
       }
+
+      // Always use Australian timezone for debugging
+      const userTimezone = "Australia/Sydney";
 
       const eventData = {
         summary: args.summary,
         description: args.description,
         start: {
           dateTime: startTime,
-          timeZone:
-            args.start?.timeZone ||
-            Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timeZone: args.start?.timeZone || userTimezone,
         },
         end: {
           dateTime: endTime,
-          timeZone:
-            args.end?.timeZone ||
-            Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timeZone: args.end?.timeZone || userTimezone,
         },
         location: args.location,
         attendees: args.attendees,
       };
-
-      console.log(
-        "DEBUG: Final event data:",
-        JSON.stringify(eventData, null, 2),
-      );
-      console.log(
-        "DEBUG: User timezone:",
-        Intl.DateTimeFormat().resolvedOptions().timeZone,
-      );
 
       const response = await makeGoogleApiCall(
         url,

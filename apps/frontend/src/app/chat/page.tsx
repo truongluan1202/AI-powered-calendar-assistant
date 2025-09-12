@@ -26,6 +26,7 @@ export default function ChatPage() {
       createdAt: Date;
       isOptimistic: boolean;
       isLoading?: boolean;
+      clientKey?: string; // Stable key for streaming
     }>
   >([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -48,15 +49,54 @@ export default function ChatPage() {
     }, 3000);
   };
 
-  // Streaming text effect
+  // Clean up all optimistic state
+  const cleanupOptimisticState = () => {
+    setOptimisticMessages((prev) => {
+      // Remove all optimistic messages and any error messages
+      const cleanedMessages = prev.filter(
+        (msg) =>
+          !msg.isOptimistic &&
+          !msg.content.includes("Sorry, I encountered an error") &&
+          !msg.content.includes("error"),
+      );
+      return cleanedMessages;
+    });
+    setOptimisticEvents((prev) => {
+      const nonOptimisticEvents = prev.filter((event) => !event.isOptimistic);
+      return nonOptimisticEvents;
+    });
+    setIsExecutingTool(false);
+    setIsStreaming(false);
+  };
+
+  // Merge messages by serverId to avoid flicker
+  const mergeMessages = (serverMessages: any[], optimisticMessages: any[]) => {
+    const serverMessageIds = new Set(serverMessages.map((msg) => msg.id));
+
+    // Remove optimistic messages that have been replaced by server messages
+    const filteredOptimistic = optimisticMessages.filter(
+      (msg) => !msg.isOptimistic || !serverMessageIds.has(msg.id),
+    );
+
+    return [...serverMessages, ...filteredOptimistic];
+  };
+
+  // Streaming text effect - streams into optimistic message
   const streamText = (text: string, onComplete?: () => void) => {
     setIsStreaming(true);
-    setStreamingText("");
 
     let index = 0;
     const interval = setInterval(() => {
       if (index < text.length) {
-        setStreamingText(text.slice(0, index + 1));
+        const currentText = text.slice(0, index + 1);
+        // Update the optimistic message content
+        setOptimisticMessages((prev) =>
+          prev.map((msg) =>
+            msg.role === "assistant" && msg.isOptimistic
+              ? { ...msg, content: currentText }
+              : msg,
+          ),
+        );
         index++;
       } else {
         clearInterval(interval);
@@ -137,27 +177,10 @@ export default function ChatPage() {
 
   const generateAIResponseMutation = api.ai.generateResponse.useMutation({
     onSuccess: (data) => {
-      // Don't refetch messages immediately - we'll do it after streaming
+      // Don't clear optimistic messages - transform them instead
+      setIsExecutingTool(false);
 
-      // Clear optimistic messages after a short delay
-      setTimeout(() => {
-        setOptimisticMessages([]);
-        setIsExecutingTool(false);
-
-        // Start streaming the final response
-        if (data.content) {
-          streamText(data.content, () => {
-            // Streaming completed, now fetch and show real messages
-            void refetchMessages();
-            setStreamingText("");
-          });
-        } else {
-          // No content to stream, just fetch messages
-          void refetchMessages();
-        }
-      }, 500);
-
-      // Check if there were tool calls for event creation
+      // Check if there were tool calls for event creation FIRST
       if (data.toolCalls && data.toolCalls.length > 0) {
         // Set tool execution state to show calendar access message
         setIsExecutingTool(true);
@@ -183,11 +206,61 @@ export default function ChatPage() {
             ),
           );
         }
+
         const createEventCalls = data.toolCalls.filter(
           (call: any) => call.function.name === "createEvent",
         );
 
         if (createEventCalls.length > 0) {
+          // Update AI message to show event creation
+          setOptimisticMessages((prev) =>
+            prev.map((msg) =>
+              msg.role === "assistant" && msg.isOptimistic
+                ? {
+                    ...msg,
+                    content: "I am creating an event for you...",
+                    isLoading: true,
+                  }
+                : msg,
+            ),
+          );
+
+          // Add optimistic event based on the actual tool call arguments
+          createEventCalls.forEach((call: any) => {
+            try {
+              const eventData = JSON.parse(call.function.arguments || "{}");
+              addOptimisticEvent({
+                summary: eventData.summary || "New Event",
+                description: eventData.description || "",
+                start: eventData.start?.dateTime || eventData.start,
+                end: eventData.end?.dateTime || eventData.end,
+                location: eventData.location || "",
+              });
+            } catch (error) {
+              console.error("Failed to parse event data:", error);
+              // Add a generic optimistic event if parsing fails
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              tomorrow.setHours(14, 0, 0, 0);
+
+              const endTime = new Date(tomorrow);
+              endTime.setHours(
+                tomorrow.getHours() + 1,
+                tomorrow.getMinutes(),
+                0,
+                0,
+              );
+
+              addOptimisticEvent({
+                summary: "New Event",
+                description: "Creating event...",
+                start: tomorrow.toISOString(),
+                end: endTime.toISOString(),
+                location: "",
+              });
+            }
+          });
+
           // Find the corresponding tool results
           const createEventResults =
             data.toolResults?.filter((result: any) =>
@@ -200,14 +273,9 @@ export default function ChatPage() {
           createEventResults.forEach((result: any) => {
             if (result.success) {
               const eventData = JSON.parse(result.content);
-              // Remove the most recent optimistic event and add the real one
+              // Remove the most recent optimistic event (since we don't have tmpId in result yet)
               setOptimisticEvents((prev) => prev.slice(0, -1));
               setEvents((prev) => [...prev, eventData]);
-
-              // Show success toast
-              showToast(
-                `✅ Event "${eventData.summary || "Untitled"}" created successfully!`,
-              );
             } else {
               // Just remove failed optimistic events
               setOptimisticEvents((prev) => prev.slice(0, -1));
@@ -215,24 +283,168 @@ export default function ChatPage() {
           });
         }
       }
-    },
-    onError: () => {
-      // Remove optimistic AI message on error and show error state
-      setOptimisticMessages((prev) =>
-        prev.map((msg) =>
-          msg.isOptimistic && msg.role === "assistant"
-            ? {
-                ...msg,
-                content: "Sorry, I encountered an error. Please try again.",
-                isLoading: false,
-              }
-            : msg,
-        ),
-      );
-      setIsExecutingTool(false);
 
-      // Remove optimistic events on error
-      setOptimisticEvents((prev) => prev.slice(0, -1));
+      // Handle final response streaming AFTER tool call handling
+      if (data.content?.trim()) {
+        // If there were tool calls, show them first, then stream the final response
+        if (data.toolCalls && data.toolCalls.length > 0) {
+          // Show tool call message for 2 seconds, then stream final response
+          setTimeout(() => {
+            // Clear content to start streaming
+            setOptimisticMessages((prev) =>
+              prev.map((msg) =>
+                msg.role === "assistant" && msg.isOptimistic
+                  ? {
+                      ...msg,
+                      content: "", // Clear content to start streaming
+                      isLoading: false,
+                    }
+                  : msg,
+              ),
+            );
+
+            // Stream the final response
+            streamText(data.content || "", () => {
+              // Fetch and merge real messages after streaming completes
+              void refetchMessages().then(() => {
+                setOptimisticMessages([]);
+              });
+            });
+
+            // Show success toast for event creation if there were createEvent tool calls
+            if (
+              data.toolCalls?.some(
+                (call: any) => call.function.name === "createEvent",
+              )
+            ) {
+              showToast("✅ Event created successfully!");
+            }
+          }, 2000); // 3 second delay to show tool call message
+        } else {
+          // No tool calls, stream immediately
+          setOptimisticMessages((prev) =>
+            prev.map((msg) =>
+              msg.role === "assistant" && msg.isOptimistic
+                ? {
+                    ...msg,
+                    content: "", // Clear content to start streaming
+                    isLoading: false,
+                  }
+                : msg,
+            ),
+          );
+
+          streamText(data.content, () => {
+            // Streaming completed, now fetch and merge real messages
+            void refetchMessages().then(() => {
+              // Clear optimistic messages after successful merge
+              setOptimisticMessages([]);
+            });
+          });
+        }
+      } else {
+        // Handle empty response - show appropriate message
+        if (data.toolCalls && data.toolCalls.length > 0) {
+          // If there are tool calls but no content, keep the tool call message
+          if (
+            data.toolCalls.some(
+              (call: any) => call.function.name === "createEvent",
+            )
+          ) {
+            // For createEvent, show success message
+            setOptimisticMessages((prev) =>
+              prev.map((msg) =>
+                msg.role === "assistant" && msg.isOptimistic
+                  ? {
+                      ...msg,
+                      content: "Event created successfully!",
+                      isLoading: false,
+                    }
+                  : msg,
+              ),
+            );
+
+            showToast("✅ Event created successfully!");
+          }
+
+          // Fetch real messages after a delay
+          setTimeout(() => {
+            void refetchMessages().then(() => {
+              setOptimisticMessages([]);
+            });
+          }, 2000);
+        } else {
+          // No tool calls and no content - show error message
+          setOptimisticMessages((prev) =>
+            prev.map((msg) =>
+              msg.role === "assistant" && msg.isOptimistic
+                ? {
+                    ...msg,
+                    content:
+                      "I apologize, but I didn't receive a proper response. Please try again.",
+                    isLoading: false,
+                  }
+                : msg,
+            ),
+          );
+
+          // Fetch real messages
+          setTimeout(() => {
+            void refetchMessages().then(() => {
+              setOptimisticMessages([]);
+            });
+          }, 2000);
+        }
+      }
+    },
+    onError: (error) => {
+      // Clean up all optimistic state first
+      cleanupOptimisticState();
+
+      // Determine user-friendly error message based on error type
+      let userMessage = "Sorry, I encountered an error. Please try again.";
+      let toastMessage = "❌ Sorry, I encountered an error. Please try again.";
+
+      if (error.message.includes("Unable to connect to AI service")) {
+        userMessage =
+          "I'm unable to connect to the AI service. Please check if the backend is running and try again.";
+        toastMessage =
+          "🔌 Unable to connect to AI service. Please check backend connection.";
+      } else if (error.message.includes("AI service is unavailable")) {
+        userMessage =
+          "The AI service is currently unavailable. Please try again later.";
+        toastMessage =
+          "⏳ AI service is temporarily unavailable. Please try again later.";
+      } else if (error.message.includes("AI service error")) {
+        userMessage =
+          "There was an error with the AI service. Please try again.";
+        toastMessage = "🤖 AI service error. Please try again.";
+      } else if (error.message.includes("AI generation failed")) {
+        userMessage = "AI generation failed. Please try again.";
+        toastMessage = "⚠️ AI generation failed. Please try again.";
+      }
+
+      // Show error toast
+      showToast(toastMessage);
+
+      // Add a temporary error message that will be cleaned up immediately
+      const errorMessage = {
+        id: `error-${Date.now()}`,
+        role: "assistant",
+        content: userMessage,
+        createdAt: new Date(),
+        isOptimistic: true, // Mark as optimistic so it gets cleaned up
+        isLoading: false,
+      };
+
+      setOptimisticMessages((prev) => [...prev, errorMessage]);
+
+      // Auto-cleanup error message after 5 seconds (longer for more detailed messages)
+      setTimeout(() => {
+        setOptimisticMessages((prev) =>
+          prev.filter((msg) => msg.id !== errorMessage.id),
+        );
+      }, 5000);
     },
   });
 
@@ -250,15 +462,9 @@ export default function ChatPage() {
     setOptimisticEvents([]);
 
     try {
-      const timeMin = new Date(
-        Date.now() - 7 * 24 * 60 * 60 * 1000,
-      ).toISOString(); // 7 days ago
-      const timeMax = new Date(
-        Date.now() + 30 * 24 * 60 * 60 * 1000,
-      ).toISOString(); // 30 days from now
-
-      console.log("Fetching events from Google Calendar...");
-      console.log("Time range:", { timeMin, timeMax });
+      // Use relative time references that will be properly converted by the tool
+      const timeMin = "7 days ago";
+      const timeMax = "30 days from now";
 
       const response = await fetch("/api/tools/execute", {
         method: "POST",
@@ -275,7 +481,7 @@ export default function ChatPage() {
                 arguments: JSON.stringify({
                   timeMin,
                   timeMax,
-                  maxResults: 50,
+                  maxResults: 250, // Increased limit to get more events
                 }),
               },
             },
@@ -293,17 +499,12 @@ export default function ChatPage() {
       }
 
       const { results } = await response.json();
-      console.log("Tool execution results:", results);
-
       if (results && results.length > 0) {
         const result = results[0];
-        console.log("First result:", result);
 
         if (result.success) {
           const data = JSON.parse(result.content);
-          console.log("Parsed event data:", data);
           setEvents(data.events ?? []);
-          console.log(`Successfully loaded ${data.events?.length || 0} events`);
           setEventsError(null);
 
           // Show refresh success toast
@@ -331,8 +532,10 @@ export default function ChatPage() {
 
   // Add optimistic event
   const addOptimisticEvent = (eventData: any) => {
+    const tmpId = `tmp-${Date.now()}`;
     const optimisticEvent = {
       id: `optimistic-${Date.now()}`,
+      tmpId, // Add tmpId for reliable removal
       summary: eventData.summary,
       start: eventData.start?.dateTime || eventData.start,
       end: eventData.end?.dateTime || eventData.end,
@@ -342,7 +545,7 @@ export default function ChatPage() {
       isOptimistic: true,
     };
     setOptimisticEvents((prev) => [...prev, optimisticEvent]);
-    return optimisticEvent.id;
+    return tmpId; // Return tmpId instead of id
   };
 
   // Initialize by selecting first available thread (don't auto-create)
@@ -403,9 +606,8 @@ export default function ChatPage() {
 
   // Clear optimistic messages when switching threads
   useEffect(() => {
-    setOptimisticMessages([]);
+    cleanupOptimisticState();
     setStreamingText("");
-    setIsStreaming(false);
     lastMessageCountRef.current = 0;
   }, [currentThreadId]);
 
@@ -423,7 +625,7 @@ export default function ChatPage() {
             msg.role === "assistant" && msg.isOptimistic
               ? {
                   ...msg,
-                  content: "I'm processing your request...",
+                  content: "Our model is thinking...",
                   isLoading: true,
                 }
               : msg,
@@ -444,7 +646,7 @@ export default function ChatPage() {
           msg.role === "assistant" && msg.isOptimistic
             ? {
                 ...msg,
-                content: "I'm processing your request...",
+                content: "Our model is thinking...",
                 isLoading: true,
               }
             : msg,
@@ -460,6 +662,13 @@ export default function ChatPage() {
     }
   }, [messages, optimisticMessages]);
 
+  // Clean up optimistic state when component unmounts
+  useEffect(() => {
+    return () => {
+      cleanupOptimisticState();
+    };
+  }, []);
+
   const send = async () => {
     if (!input.trim()) return;
 
@@ -473,14 +682,19 @@ export default function ChatPage() {
     const userMessage = input.trim();
     setInput("");
 
-    // Check if this looks like an event creation request (more specific)
-    const isEventCreation =
-      /(create|schedule|add|book|plan|arrange)\s+(a\s+)?(meeting|appointment|event|call|conference)/i.test(
-        userMessage,
-      ) ||
-      /(meeting|appointment|event|call|conference)\s+(with|for|at)/i.test(
-        userMessage,
+    // Clean up any existing optimistic state before starting new query
+    cleanupOptimisticState();
+
+    // Additional cleanup to ensure no error messages persist
+    setOptimisticMessages((prev) => {
+      const cleaned = prev.filter(
+        (msg) =>
+          !msg.content.includes("Sorry, I encountered an error") &&
+          !msg.content.includes("error") &&
+          !msg.isOptimistic,
       );
+      return cleaned;
+    });
 
     // Add optimistic user message immediately
     const optimisticUserMessage = {
@@ -491,64 +705,21 @@ export default function ChatPage() {
       isOptimistic: true,
     };
 
-    // Add optimistic AI loading message
+    // Add optimistic AI loading message with stable clientKey
     const optimisticAIMessage = {
       id: `ai-${Date.now()}`,
       role: "assistant",
-      content: "I'm processing your request...",
+      content: "Our model is thinking...",
       createdAt: new Date(),
       isOptimistic: true,
       isLoading: true,
+      clientKey: `ai-${Date.now()}`, // Stable key for streaming
     };
 
-    setOptimisticMessages((prev) => [
-      ...prev,
-      optimisticUserMessage,
-      optimisticAIMessage,
-    ]);
-
-    // If this looks like event creation, add a placeholder optimistic event
-    if (isEventCreation) {
-      // Try to extract time information from the message
-      const timeRegex = /(\d{1,2}):?(\d{2})?\s*(am|pm|AM|PM)?/i;
-      const timeMatch = timeRegex.exec(userMessage);
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      if (timeMatch?.[1]) {
-        const hour = parseInt(timeMatch[1]);
-        const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
-        const period = timeMatch[3]?.toLowerCase();
-
-        let adjustedHour = hour;
-        if (period === "pm" && hour !== 12) {
-          adjustedHour = hour + 12;
-        } else if (period === "am" && hour === 12) {
-          adjustedHour = 0;
-        }
-
-        tomorrow.setHours(adjustedHour, minute, 0, 0);
-      } else {
-        tomorrow.setHours(14, 0, 0, 0); // Default to 2 PM
-      }
-
-      const endTime = new Date(tomorrow);
-      endTime.setHours(tomorrow.getHours() + 1, tomorrow.getMinutes(), 0, 0);
-
-      // Extract event title from the message
-      const titleRegex =
-        /(?:create|schedule|add|book|plan|arrange)\s+(.+?)(?:\s+(?:at|on|for|tomorrow|today|next week))/i;
-      const titleMatch = titleRegex.exec(userMessage);
-      const eventTitle = titleMatch?.[1]?.trim() ?? "New Event";
-
-      addOptimisticEvent({
-        summary: eventTitle,
-        description: userMessage,
-        start: tomorrow.toISOString(),
-        end: endTime.toISOString(),
-        location: "",
-      });
-    }
+    setOptimisticMessages((prev) => {
+      const newMessages = [...prev, optimisticUserMessage, optimisticAIMessage];
+      return newMessages;
+    });
 
     // First save the user message
     addMessageMutation.mutate({
@@ -558,6 +729,7 @@ export default function ChatPage() {
     });
 
     // Then generate AI response
+
     generateAIResponseMutation.mutate({
       threadId: currentThreadId,
       message: userMessage,
@@ -806,102 +978,66 @@ export default function ChatPage() {
               </div>
             ) : (
               <>
-                {/* Real messages from database */}
-                {messages.map((message: any) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
+                {/* All messages (Real + Optimistic merged) */}
+                {mergeMessages(messages, optimisticMessages).map(
+                  (message: any) => (
                     <div
-                      className={`max-w-3xl rounded-lg px-4 py-2 ${
+                      key={message.clientKey || message.id}
+                      className={`flex ${
                         message.role === "user"
-                          ? "bg-blue-500 text-white"
-                          : "border border-gray-200 bg-white"
+                          ? "justify-end"
+                          : "justify-start"
                       }`}
                     >
                       <div
-                        dangerouslySetInnerHTML={{
-                          __html: renderMarkdown(message.content),
-                        }}
-                      />
-                      <div
-                        className={`mt-1 text-xs ${
+                        className={`w-fit max-w-xl rounded-lg px-4 py-2 ${
                           message.role === "user"
-                            ? "text-blue-100"
-                            : "text-gray-500"
+                            ? "bg-blue-500 text-white"
+                            : message.isLoading
+                              ? "border border-gray-200 bg-gray-50"
+                              : "border border-gray-200 bg-white"
                         }`}
                       >
-                        {new Date(message.createdAt).toLocaleTimeString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Streaming text display */}
-                {isStreaming && streamingText && (
-                  <div className="flex justify-start">
-                    <div className="max-w-3xl rounded-lg border border-gray-200 bg-white px-4 py-2">
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: renderMarkdown(streamingText),
-                        }}
-                      />
-                      <div className="mt-1 text-xs text-gray-500">
-                        {new Date().toLocaleTimeString()}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Optimistic messages */}
-                {optimisticMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-3xl rounded-lg px-4 py-2 ${
-                        message.role === "user"
-                          ? "bg-blue-500 text-white"
-                          : message.isLoading
-                            ? "border border-gray-200 bg-gray-50"
-                            : "border border-gray-200 bg-white"
-                      }`}
-                    >
-                      {message.isLoading ? (
-                        <div className="flex items-center space-x-3">
-                          <div className="flex space-x-1">
-                            <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-0.3s]"></div>
-                            <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-0.15s]"></div>
-                            <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400"></div>
+                        {message.isLoading ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="flex space-x-1">
+                                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-0.3s]"></div>
+                                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-0.15s]"></div>
+                                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400"></div>
+                              </div>
+                              {/* <span className="font-medium text-gray-600">
+                              </span> */}
+                            </div>
+                            {message.content && (
+                              <div
+                                className="text-gray-700"
+                                dangerouslySetInnerHTML={{
+                                  __html: renderMarkdown(message.content),
+                                }}
+                              />
+                            )}
                           </div>
-                          <span className="font-medium text-gray-600">
-                            {message.content}
-                          </span>
-                        </div>
-                      ) : (
+                        ) : (
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: renderMarkdown(message.content),
+                            }}
+                          />
+                        )}
                         <div
-                          dangerouslySetInnerHTML={{
-                            __html: renderMarkdown(message.content),
-                          }}
-                        />
-                      )}
-                      <div
-                        className={`mt-1 text-xs ${
-                          message.role === "user"
-                            ? "text-blue-100"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {message.createdAt.toLocaleTimeString()}
+                          className={`mt-1 text-xs ${
+                            message.role === "user"
+                              ? "text-blue-100"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {new Date(message.createdAt).toLocaleTimeString()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </>
             )}
           </div>

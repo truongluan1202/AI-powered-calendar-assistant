@@ -269,8 +269,6 @@ class GeminiProvider(BaseLLMProvider):
             # Add tools if provided (already formatted for Gemini in tools.py)
             if tools:
                 config.tools = [{"function_declarations": tools}]
-                print(f"DEBUG: Tools: {len(tools)}")
-                print(f"DEBUG: Tool names: {[tool['name'] for tool in tools]}")
             # Use the google-genai client to generate content (synchronous call)
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
@@ -285,26 +283,23 @@ class GeminiProvider(BaseLLMProvider):
             content = (
                 response.text if hasattr(response, "text") and response.text else ""
             )
-            print(f"DEBUG: Gemini response content: {content}")
 
             # Extract tool calls if present (Gemini format)
             tool_calls = []
             if hasattr(response, "candidates") and response.candidates:
                 for candidate in response.candidates:
-                    if hasattr(candidate, "content") and candidate.content:
+                    if (
+                        hasattr(candidate, "content")
+                        and candidate.content
+                        and hasattr(candidate.content, "parts")
+                        and candidate.content.parts
+                    ):
                         for part in candidate.content.parts:
-                            # print(f"DEBUG: Part: {part}")
-                            # print(f"DEBUG: Part function call: {part.function_call}")
                             if (
                                 hasattr(part, "function_call")
                                 and part.function_call is not None
                             ):
-                                print(f"DEBUG: Raw args: {part.function_call.args}")
-                                print(
-                                    f"DEBUG: Args type: {type(part.function_call.args)}"
-                                )
                                 json_args = json.dumps(part.function_call.args)
-                                print(f"DEBUG: JSON args: {json_args}")
                                 tool_calls.append(
                                     {
                                         "id": f"gemini-{hash(part.function_call.name)}",
@@ -393,10 +388,12 @@ class LLMService:
         model: Optional[str] = None,
     ) -> LLMResponse:
         from datetime import datetime
+        import pytz
 
-        # Get current time in UTC
-        current_time = datetime.utcnow()
-        current_time_str = current_time.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        # Get current time in Australian timezone for consistency with frontend
+        aus_tz = pytz.timezone("Australia/Sydney")
+        current_time = datetime.now(aus_tz)
+        current_time_str = current_time.strftime("%Y-%m-%dT%H:%M:%S%z")
 
         system_message = LLMMessage(
             role="system",
@@ -405,7 +402,7 @@ class LLMService:
                 "create events, and answer questions about their calendar. "
                 "You have access to tools to get calendar events, create new events, and search the web. "
                 "\n\n"
-                f"Current time: {current_time_str} (UTC).\n"
+                f"Current time: {current_time_str} (Australia/Sydney timezone).\n"
                 f"For any calendar question, use this current time to interpret 'today', 'tomorrow', 'this week', 'this month', etc.\n\n"
                 "IMPORTANT: You MUST use tools to answer calendar-related questions. Do not try to answer "
                 "calendar questions without using the appropriate tools. Here are the key rules:\n"
@@ -576,17 +573,19 @@ class LLMService:
     ) -> LLMResponse:
         """Generate response specifically for calendar-related queries with enhanced tool calling guidance."""
         from datetime import datetime
+        import pytz
 
-        # Get current time in UTC
-        current_time = datetime.utcnow()
-        current_time_str = current_time.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        # Get current time in Australian timezone for consistency with frontend
+        aus_tz = pytz.timezone("Australia/Sydney")
+        current_time = datetime.now(aus_tz)
+        current_time_str = current_time.strftime("%Y-%m-%dT%H:%M:%S%z")
 
         system_message = LLMMessage(
             role="system",
             content=(
                 "You are an AI calendar assistant. Your primary function is to help users with their calendar. "
                 "You MUST use tools to answer calendar questions - never try to answer without tools.\n\n"
-                f"Current time: {current_time_str} (UTC).\n"
+                f"Current time: {current_time_str} (Australia/Sydney timezone).\n"
                 f"For any calendar question, use this current time to interpret 'today', 'tomorrow', 'this week', 'this month', etc.\n\n"
                 "CRITICAL RULES:\n"
                 "1. For ANY question about existing events, upcoming events, or calendar queries, you MUST use getEvents tool\n"
@@ -594,6 +593,13 @@ class LLMService:
                 "3. For general information not related to the user's calendar, use webSearch tool\n"
                 "4. Never say 'I don't have access to your calendar' - you DO have access via tools\n"
                 "5. ALWAYS use the current time above when creating events or interpreting time references\n\n"
+                "HANDLING VAGUE REQUESTS - AUTO-COMPLETE WITH REASONABLE DEFAULTS:\n"
+                "When users make vague requests, intelligently fill in missing details:\n\n"
+                "• Missing title/summary: Use 'Meeting with [person]' or 'Meeting'\n"
+                "• Missing duration: Assume 1 hour duration (end time = start time + 1 hour)\n"
+                "• Missing description: Leave empty or add 'Scheduled via AI assistant'\n"
+                "• Missing location: Leave empty\n"
+                "• Missing attendees: Leave empty\n\n"
                 "SPECIFIC EXAMPLES:\n"
                 "User: 'What's my next event?'\n"
                 "→ Use getEvents with timeMin=now, maxResults=1\n\n"
@@ -603,6 +609,13 @@ class LLMService:
                 "→ Use getEvents with timeMin=today start, timeMax=today end\n\n"
                 "User: 'Add a meeting with John tomorrow at 2pm'\n"
                 "→ Use createEvent with summary='Meeting with John', start='tomorrow 2pm', end='tomorrow 3pm'\n\n"
+                "EXAMPLES OF VAGUE REQUESTS:\n"
+                "User: 'add a meeting with andy tomorrow at 3pm'\n"
+                "→ Use createEvent with summary='Meeting with Andy', start='tomorrow 3pm', end='tomorrow 4pm', description='Scheduled via AI assistant'\n\n"
+                "User: 'schedule something with sarah next week'\n"
+                "→ Use createEvent with summary='Meeting with Sarah', start='next week monday 9am', end='next week monday 10am', description='Scheduled via AI assistant'\n\n"
+                "User: 'book time with the team tomorrow'\n"
+                "→ Use createEvent with summary='Team Meeting', start='tomorrow 10am', end='tomorrow 11am', description='Team meeting scheduled via AI assistant'\n\n"
                 "When creating events, use relative time references like 'tomorrow 2pm' and let the system convert them to proper timestamps.\n"
                 "Always use the appropriate tool first, then provide a helpful response based on the tool results."
             ),

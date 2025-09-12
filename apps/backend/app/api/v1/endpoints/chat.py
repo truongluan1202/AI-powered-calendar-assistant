@@ -42,8 +42,6 @@ class GenerateResponse(BaseModel):
 async def generate_llm_response(request: GenerateRequest):
     """Generate LLM response without any database operations."""
     try:
-        print(f"DEBUG: Received request with {len(request.messages)} messages")
-        print(f"DEBUG: Provider: {request.model_provider}, Model: {request.model_name}")
 
         # Convert messages to LLM format
         llm_messages = [
@@ -52,13 +50,10 @@ async def generate_llm_response(request: GenerateRequest):
 
         # Check if provider is available
         if not llm_service.is_provider_available(request.model_provider):
-            print(f"DEBUG: Provider {request.model_provider} is not available")
             raise HTTPException(
                 status_code=400,
                 detail=f"LLM provider {request.model_provider} is not available",
             )
-
-        print(f"DEBUG: Calling LLM service with {len(llm_messages)} messages")
 
         # Get tools for the provider
         tools = get_tools_for_provider(request.model_provider)
@@ -66,7 +61,6 @@ async def generate_llm_response(request: GenerateRequest):
         # Check if this is a calendar-related query and use appropriate method
         user_message = llm_messages[-1].content if llm_messages else ""
         if llm_service.is_calendar_query(user_message):
-            print(f"DEBUG: This is a calendar-related query")
             # Use calendar-specific response generation for better tool calling
             conversation_history = llm_messages[:-1] if len(llm_messages) > 1 else []
             llm_response = await llm_service.generate_calendar_response(
@@ -85,9 +79,6 @@ async def generate_llm_response(request: GenerateRequest):
                 tools=tools,
             )
 
-        print(f"DEBUG: LLM response generated successfully")
-        print(f"DEBUG: Tool calls: {llm_response.tool_calls}")
-
         return GenerateResponse(
             content=llm_response.content,
             provider=llm_response.provider,
@@ -97,7 +88,6 @@ async def generate_llm_response(request: GenerateRequest):
         )
 
     except Exception as e:
-        print(f"DEBUG: Error in generate_llm_response: {str(e)}")
         import traceback
 
         traceback.print_exc()

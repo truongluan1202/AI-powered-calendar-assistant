@@ -1,25 +1,53 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { useState, useEffect } from "react";
 import { api } from "~/trpc/react";
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
-    name: session?.user?.name || "",
-    timezone: "UTC",
+    name: "",
   });
 
   // Update form data when session changes
-  useState(() => {
+  useEffect(() => {
     if (session?.user) {
       setFormData({
         name: session.user.name || "",
-        timezone: "UTC", // You might want to get this from user data
       });
     }
+  }, [session]);
+
+  // tRPC mutations
+  const updateUserMutation = api.user.updateProfile.useMutation({
+    onSuccess: async (updatedUser) => {
+      // Update the session with the new user data
+      await update({
+        ...session,
+        user: {
+          ...session?.user,
+          name: updatedUser.name,
+        },
+      });
+      alert("Profile updated successfully!");
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      alert(`Failed to update profile: ${error.message}`);
+    },
+  });
+
+  const deleteAccountMutation = api.user.deleteAccount.useMutation({
+    onSuccess: () => {
+      alert("Account deleted successfully. You will be signed out.");
+      void signOut({ callbackUrl: "/" });
+    },
+    onError: (error) => {
+      alert(`Failed to delete account: ${error.message}`);
+    },
   });
 
   const handleInputChange = (
@@ -33,18 +61,33 @@ export default function ProfilePage() {
   };
 
   const handleSave = () => {
-    // Here you would typically call a tRPC mutation to update user data
-    // For now, we'll just show a success message
-    alert("Profile updated successfully!");
-    setIsEditing(false);
+    if (!session?.user?.id) return;
+
+    updateUserMutation.mutate({
+      userId: session.user.id,
+      name: formData.name,
+    });
   };
 
   const handleCancel = () => {
     setFormData({
       name: session?.user?.name || "",
-      timezone: "UTC",
     });
     setIsEditing(false);
+  };
+
+  const handleDeleteAccount = () => {
+    if (!session?.user?.id) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.",
+    );
+
+    if (confirmed) {
+      deleteAccountMutation.mutate({
+        userId: session.user.id,
+      });
+    }
   };
 
   if (status === "loading") {
@@ -143,6 +186,7 @@ export default function ProfilePage() {
                         value={formData.name}
                         onChange={handleInputChange}
                         className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        disabled={updateUserMutation.isPending}
                       />
                     ) : (
                       <p className="text-gray-900">
@@ -163,34 +207,6 @@ export default function ProfilePage() {
 
                   <div>
                     <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Timezone
-                    </label>
-                    {isEditing ? (
-                      <select
-                        name="timezone"
-                        value={formData.timezone}
-                        onChange={handleInputChange}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="UTC">UTC</option>
-                        <option value="America/New_York">Eastern Time</option>
-                        <option value="America/Chicago">Central Time</option>
-                        <option value="America/Denver">Mountain Time</option>
-                        <option value="America/Los_Angeles">
-                          Pacific Time
-                        </option>
-                        <option value="Europe/London">London</option>
-                        <option value="Europe/Paris">Paris</option>
-                        <option value="Asia/Tokyo">Tokyo</option>
-                        <option value="Asia/Shanghai">Shanghai</option>
-                      </select>
-                    ) : (
-                      <p className="text-gray-900">{formData.timezone}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
                       User ID
                     </label>
                     <p className="font-mono text-sm text-gray-900">
@@ -204,13 +220,17 @@ export default function ProfilePage() {
                   <div className="flex space-x-3 border-t border-gray-200 pt-4">
                     <button
                       onClick={handleSave}
-                      className="rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600"
+                      disabled={updateUserMutation.isPending}
+                      className="rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Save Changes
+                      {updateUserMutation.isPending
+                        ? "Saving..."
+                        : "Save Changes"}
                     </button>
                     <button
                       onClick={handleCancel}
-                      className="rounded-md bg-gray-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600"
+                      disabled={updateUserMutation.isPending}
+                      className="rounded-md bg-gray-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -274,11 +294,14 @@ export default function ProfilePage() {
                 >
                   Go to Chat
                 </a>
-                <button className="block w-full rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200">
-                  Export Data
-                </button>
-                <button className="block w-full rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200">
-                  Delete Account
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteAccountMutation.isPending}
+                  className="block w-full rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deleteAccountMutation.isPending
+                    ? "Deleting..."
+                    : "Delete Account"}
                 </button>
               </div>
             </div>

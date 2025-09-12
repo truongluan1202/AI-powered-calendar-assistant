@@ -12,6 +12,7 @@ dependencies = [
     "anthropic>=0.25.0",
     "httpx>=0.25.0",
     "google-genai>=1.33.0",
+    "pytz>=2025.2",
 ]
 
 [dependency-groups]
