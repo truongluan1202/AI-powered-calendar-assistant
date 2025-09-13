@@ -2,12 +2,53 @@
 
 @theme {
   --font-sans:
-    var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #737373;
+  --color-border: #e5e5e5;
+  --color-accent: #f5f5f5;
+  --color-accent-foreground: #0a0a0a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0a0a0a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0a0a0a;
+  --color-primary: #0a0a0a;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #0a0a0a;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-ring: #0a0a0a;
+  --radius: 0.5rem;
 }
 
 /* Enable dark mode with class strategy */
 @variant dark (.dark &);
+
+/* Dark mode color overrides */
+.dark {
+  --color-background: #111111;
+  --color-foreground: #f5f5f5;
+  --color-muted: #1f1f1f;
+  --color-muted-foreground: #a3a3a3;
+  --color-border: #2a2a2a;
+  --color-accent: #1f1f1f;
+  --color-accent-foreground: #f5f5f5;
+  --color-card: #161616;
+  --color-card-foreground: #f5f5f5;
+  --color-popover: #161616;
+  --color-popover-foreground: #f5f5f5;
+  --color-primary: #f5f5f5;
+  --color-primary-foreground: #111111;
+  --color-secondary: #1f1f1f;
+  --color-secondary-foreground: #f5f5f5;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-ring: #f5f5f5;
+}
 
 /* Custom scrollbar styling */
 ::-webkit-scrollbar {
@@ -20,12 +61,13 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d1d5db;
   border-radius: 3px;
+  transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #9ca3af;
 }
 
 /* Smooth scrolling and prevent body scroll */
@@ -47,17 +89,17 @@ body {
 
 /* Custom selection styles */
 ::selection {
-  background-color: #3b82f6;
-  color: white;
+  background-color: #e5e7eb;
+  color: #0a0a0a;
 }
 
 /* Dark mode scrollbar */
 .dark ::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: #404040;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: #525252;
 }
 
 /* Custom backdrop blur support */
@@ -71,8 +113,8 @@ body {
 
 /* Dark mode selection */
 .dark ::selection {
-  background-color: #60a5fa;
-  color: white;
+  background-color: #404040;
+  color: #fafafa;
 }
 
 /* Dark mode transitions */
@@ -86,4 +128,280 @@ body {
 /* Ensure dark mode is applied to html */
 .dark {
   color-scheme: dark;
+}
+
+/* Sophisticated gradient backgrounds */
+.gradient-bg {
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+}
+
+.dark .gradient-bg {
+  background: linear-gradient(135deg, #111111 0%, #1f1f1f 50%, #161616 100%);
+}
+
+.gradient-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  border: 1px solid #e5e5e5;
+}
+
+.dark .gradient-card {
+  background: linear-gradient(135deg, #161616 0%, #1f1f1f 100%);
+  border: 1px solid #2a2a2a;
+}
+
+.gradient-sidebar {
+  background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+  border-right: 1px solid #e5e5e5;
+}
+
+.dark .gradient-sidebar {
+  background: linear-gradient(180deg, #111111 0%, #1f1f1f 100%);
+  border-right: 1px solid #2a2a2a;
+}
+
+/* Refined typography */
+.text-refined {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  letter-spacing: -0.01em;
+  line-height: 1.6;
+}
+
+/* Subtle shadows and depth */
+.shadow-refined {
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.dark .shadow-refined {
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.3),
+    0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.shadow-elegant {
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.dark .shadow-elegant {
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.4),
+    0 2px 4px -1px rgba(0, 0, 0, 0.3);
+}
+
+/* Sophisticated AI Introduction Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(31, 41, 55, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(31, 41, 55, 0.7);
+  }
+}
+
+.dark .animate-pulse-glow {
+  animation: pulseGlowDark 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlowDark {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(107, 114, 128, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(107, 114, 128, 0.6);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Animation Classes */
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.6s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInFromLeft 0.7s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight 0.7s ease-out forwards;
+}
+
+.animate-slide-in-bottom {
+  animation: slideInFromBottom 0.8s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Staggered Animation Delays */
+.animate-delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animate-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animate-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animate-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animate-delay-500 {
+  animation-delay: 0.5s;
+}
+
+.animate-delay-600 {
+  animation-delay: 0.6s;
+}
+
+.animate-delay-700 {
+  animation-delay: 0.7s;
+}
+
+.animate-delay-800 {
+  animation-delay: 0.8s;
+}
+
+.animate-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animate-delay-1200 {
+  animation-delay: 1.2s;
+}
+
+.animate-delay-1400 {
+  animation-delay: 1.4s;
+}
+
+.animate-delay-1600 {
+  animation-delay: 1.6s;
+}
+
+.animate-delay-1800 {
+  animation-delay: 1.8s;
+}
+
+/* Initial hidden state for animations */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s ease-out;
+}
+
+.animate-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
 }

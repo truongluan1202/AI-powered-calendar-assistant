@@ -21,7 +21,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <body className="gradient-bg h-screen overflow-hidden">
         <ThemeProvider>
           <SessionProvider>
             <TRPCReactProvider>

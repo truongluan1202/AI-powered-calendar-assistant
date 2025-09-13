@@ -92,8 +92,8 @@ export default function ProfilePage() {
 
   if (status === "loading") {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-lg text-gray-900 dark:text-gray-100">
+      <div className="gradient-bg flex h-full items-center justify-center">
+        <div className="text-refined text-lg text-gray-900 dark:text-gray-100">
           Loading...
         </div>
       </div>
@@ -102,12 +102,12 @@ export default function ProfilePage() {
 
   if (!session) {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="gradient-bg flex h-full items-center justify-center">
         <div className="text-center">
-          <h1 className="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-refined mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
             Please sign in to view your profile
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">
+          <p className="text-refined text-gray-600 dark:text-gray-400">
             You need to be authenticated to access this page.
           </p>
         </div>
@@ -116,14 +116,14 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50 py-8 dark:bg-gray-900">
+    <div className="gradient-bg h-full overflow-y-auto py-8">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-refined text-3xl font-bold text-gray-900 dark:text-gray-100">
             Profile
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400 dark:text-gray-500">
+          <p className="text-refined mt-2 text-gray-600 dark:text-gray-400">
             Manage your account information and preferences.
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Profile Information */}
           <div className="lg:col-span-2">
-            <div className="rounded-lg bg-white shadow dark:bg-gray-800">
+            <div className="gradient-card shadow-refined rounded-lg">
               <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -140,7 +140,7 @@ export default function ProfilePage() {
                   {!isEditing && (
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+                      className="hover:shadow-elegant rounded-md bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:from-gray-700 hover:to-gray-800 dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
                     >
                       Edit
                     </button>
@@ -159,8 +159,8 @@ export default function ProfilePage() {
                         className="h-20 w-20 rounded-full"
                       />
                     ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-500">
-                        <span className="text-2xl font-medium text-white">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
+                        <span className="text-2xl font-medium text-white dark:text-white">
                           {session.user?.name?.charAt(0) || "U"}
                         </span>
                       </div>
@@ -170,7 +170,7 @@ export default function ProfilePage() {
                     <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                       {session.user?.name || "User"}
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                    <p className="text-gray-500 dark:text-gray-400">
                       {session.user?.email}
                     </p>
                     <p className="text-sm text-gray-400 dark:text-gray-500">
@@ -191,7 +191,7 @@ export default function ProfilePage() {
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        className="text-refined w-full rounded-md border border-gray-300 px-3 py-2 focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         disabled={updateUserMutation.isPending}
                       />
                     ) : (
@@ -229,7 +229,7 @@ export default function ProfilePage() {
                     <button
                       onClick={handleSave}
                       disabled={updateUserMutation.isPending}
-                      className="rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="hover:shadow-elegant rounded-md bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:from-gray-600 hover:to-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:from-gray-300 dark:to-gray-400 dark:text-gray-900 dark:hover:from-gray-200 dark:hover:to-gray-300"
                     >
                       {updateUserMutation.isPending
                         ? "Saving..."
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                     <button
                       onClick={handleCancel}
                       disabled={updateUserMutation.isPending}
-                      className="rounded-md bg-gray-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="hover:shadow-elegant rounded-md bg-gradient-to-r from-gray-500 to-gray-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:from-gray-400 hover:to-gray-500 disabled:cursor-not-allowed disabled:opacity-50 dark:from-gray-400 dark:to-gray-500 dark:text-gray-900 dark:hover:from-gray-300 dark:hover:to-gray-400"
                     >
                       Cancel
                     </button>
@@ -251,7 +251,7 @@ export default function ProfilePage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Account Status */}
-            <div className="rounded-lg bg-white shadow dark:bg-gray-800">
+            <div className="gradient-card shadow-refined rounded-lg">
               <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                   Account Status
@@ -259,19 +259,19 @@ export default function ProfilePage() {
               </div>
               <div className="px-6 py-4">
                 <div className="flex items-center space-x-2">
-                  <div className="h-3 w-3 rounded-full bg-green-400"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                  <div className="h-3 w-3 rounded-full bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-400 dark:to-gray-500"></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
                     Active
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                   Your account is active and ready to use.
                 </p>
               </div>
             </div>
 
             {/* Connected Accounts */}
-            <div className="rounded-lg bg-white shadow dark:bg-gray-800">
+            <div className="gradient-card shadow-refined rounded-lg">
               <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                   Connected Accounts
@@ -279,14 +279,16 @@ export default function ProfilePage() {
               </div>
               <div className="px-6 py-4">
                 <div className="flex items-center space-x-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500">
-                    <span className="text-xs font-bold text-white">G</span>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
+                    <span className="text-xs font-bold text-white dark:text-white">
+                      G
+                    </span>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       Google
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       Connected
                     </p>
                   </div>
@@ -295,7 +297,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="rounded-lg bg-white shadow dark:bg-gray-800">
+            <div className="gradient-card shadow-refined rounded-lg">
               <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                   Quick Actions
@@ -304,14 +306,14 @@ export default function ProfilePage() {
               <div className="space-y-3 px-6 py-4">
                 <a
                   href="/chat"
-                  className="block w-full rounded-md bg-blue-500 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-blue-600"
+                  className="hover:shadow-elegant block w-full rounded-md bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:from-gray-700 hover:to-gray-800 dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
                 >
                   Go to Chat
                 </a>
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteAccountMutation.isPending}
-                  className="block w-full rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="hover:shadow-elegant block w-full rounded-md bg-gradient-to-r from-gray-100 to-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:from-gray-200 hover:to-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:from-gray-700 dark:to-gray-800 dark:text-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700"
                 >
                   {deleteAccountMutation.isPending
                     ? "Deleting..."

@@ -450,7 +450,7 @@ export default function ChatPage() {
                 prev.map((event) => ({ ...event, isConfirmed: true })),
               );
             }
-          }, 2000); // 3 second delay to show tool call message
+          }, 2000); // 2 second delay to show tool call message
         } else {
           // No tool calls, stream immediately
           setOptimisticMessages((prev) =>
@@ -1032,10 +1032,10 @@ export default function ChatPage() {
 
   if (status === "loading") {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="gradient-bg flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-6 h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent dark:border-blue-400"></div>
-          <div className="text-lg font-medium text-gray-700 dark:text-gray-300">
+          <div className="mx-auto mb-6 h-16 w-16 animate-spin rounded-full border-4 border-gray-500 border-t-transparent dark:border-gray-200"></div>
+          <div className="text-lg font-medium text-gray-900 dark:text-gray-200">
             Loading...
           </div>
         </div>
@@ -1045,11 +1045,11 @@ export default function ChatPage() {
 
   if (!session) {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="gradient-bg flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600">
+          <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
             <svg
-              className="h-10 w-10 text-white"
+              className="h-10 w-10 text-white dark:text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1062,15 +1062,15 @@ export default function ChatPage() {
               />
             </svg>
           </div>
-          <h1 className="mb-4 text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-refined mb-4 text-3xl font-bold text-gray-900 dark:text-gray-100">
             Welcome to AI Calendar Assistant
           </h1>
-          <p className="mb-8 text-lg text-gray-600 dark:text-gray-300">
+          <p className="text-refined mb-8 text-lg text-gray-600 dark:text-gray-400">
             Please sign in to start managing your calendar with AI
           </p>
           <Link
             href="/api/auth/signin"
-            className="inline-flex items-center space-x-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-4 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-[0.98]"
+            className="hover:shadow-elegant inline-flex items-center space-x-2 rounded-xl bg-gradient-to-r from-gray-700 to-gray-800 px-8 py-4 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-600 hover:to-gray-700 active:scale-[0.98] dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
           >
             <svg
               className="h-5 w-5"
@@ -1093,16 +1093,16 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-full bg-gray-50 dark:bg-gray-900">
+    <div className="gradient-bg flex h-full">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="animate-in slide-in-from-right-5 fixed top-4 right-4 z-50 duration-300">
-          <div className="rounded-xl bg-green-500 px-4 py-3 text-white shadow-xl backdrop-blur-sm dark:bg-green-600">
+          <div className="shadow-elegant rounded-xl bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-3 text-white backdrop-blur-sm dark:from-gray-300 dark:to-gray-400 dark:text-gray-900">
             <div className="flex items-center space-x-2">
               <span className="text-sm font-medium">{toastMessage}</span>
               <button
                 onClick={() => setToastMessage(null)}
-                className="ml-2 text-white transition-colors hover:text-gray-200"
+                className="ml-2 text-white transition-colors hover:text-gray-200 dark:text-gray-900 dark:hover:text-gray-700"
               >
                 ✕
               </button>
@@ -1111,11 +1111,11 @@ export default function ChatPage() {
         </div>
       )}
       {/* Left Sidebar - Threads */}
-      <div className="flex w-72 flex-col border-r border-gray-200/60 bg-white/80 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/80">
+      <div className="gradient-sidebar flex w-70 flex-col backdrop-blur-sm">
         <div className="border-b border-gray-200/60 p-6 dark:border-gray-700/60">
           <button
             onClick={createNewThread}
-            className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-[0.98]"
+            className="hover:shadow-elegant w-full rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-2 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
           >
             <span className="flex items-center justify-center space-x-2">
               <svg
@@ -1154,10 +1154,10 @@ export default function ChatPage() {
                   />
                 </svg>
               </div>
-              <p className="mb-2 font-medium text-gray-700 dark:text-gray-300">
+              <p className="text-refined mb-2 font-medium text-gray-700 dark:text-gray-300">
                 No chat threads yet
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-refined text-sm text-gray-500 dark:text-gray-400">
                 Click "New Chat" to start
               </p>
             </div>
@@ -1168,8 +1168,8 @@ export default function ChatPage() {
                   key={thread.id}
                   className={`group cursor-pointer rounded-xl p-4 transition-all duration-200 ${
                     currentThreadId === thread.id
-                      ? "border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 shadow-sm dark:border-blue-700 dark:from-blue-900/50 dark:to-blue-800/50"
-                      : "border border-transparent bg-white/60 hover:border-gray-200 hover:bg-white hover:shadow-sm dark:bg-gray-700/60 dark:hover:border-gray-600 dark:hover:bg-gray-700"
+                      ? "shadow-refined border border-gray-300 bg-gradient-to-r from-gray-100 to-gray-200 dark:border-gray-600 dark:from-gray-700/10 dark:to-gray-700/50"
+                      : "hover:shadow-refined border border-transparent bg-white/60 hover:border-gray-200 hover:bg-white dark:bg-gray-700/20 dark:hover:border-gray-600 dark:hover:bg-gray-800"
                   }`}
                   onClick={() => setCurrentThreadId(thread.id)}
                 >
@@ -1179,7 +1179,7 @@ export default function ChatPage() {
                         type="text"
                         value={editingTitle}
                         onChange={(e) => setEditingTitle(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-400"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-0.5 text-sm focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-gray-400"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -1197,7 +1197,7 @@ export default function ChatPage() {
                           onClick={() =>
                             updateThreadTitle(thread.id, editingTitle)
                           }
-                          className="rounded-lg bg-green-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+                          className="rounded-lg bg-gradient-to-r from-gray-600 to-gray-700 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:from-gray-500 hover:to-gray-600 dark:from-gray-400 dark:to-gray-500 dark:hover:from-gray-300 dark:hover:to-gray-400"
                         >
                           Save
                         </button>
@@ -1246,7 +1246,7 @@ export default function ChatPage() {
                             e.stopPropagation();
                             deleteThread(thread.id);
                           }}
-                          className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/50 dark:hover:text-red-400"
+                          className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                         >
                           <svg
                             className="h-3.5 w-3.5"
@@ -1275,14 +1275,14 @@ export default function ChatPage() {
       {/* Main Content - Two Panes */}
       <div className="flex flex-1">
         {/* Chat Pane */}
-        <div className="flex h-full w-2/3 flex-col border-r border-gray-200/60 bg-white/80 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/80">
+        <div className="gradient-card flex h-full w-full flex-col backdrop-blur-sm">
           {/* Model Selection Header */}
-          <div className="border-b border-gray-200/60 bg-white/90 p-6 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/90">
+          <div className="border-b border-gray-200/60 p-6 dark:border-gray-700/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
                   <svg
-                    className="h-4 w-4 text-white"
+                    className="h-4 w-4 text-white dark:text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1317,7 +1317,7 @@ export default function ChatPage() {
                       });
                     }
                   }}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-blue-400"
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-gray-400"
                 >
                   <option value="gemini-2.5-flash-lite">
                     Gemini 2.5 Flash Lite
@@ -1340,9 +1340,9 @@ export default function ChatPage() {
             {!currentThreadId ? (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center text-gray-500 dark:text-gray-400">
-                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50">
+                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800/50 dark:to-gray-700/50">
                     <svg
-                      className="h-8 w-8 text-blue-500 dark:text-blue-400"
+                      className="h-8 w-8 text-gray-500 dark:text-gray-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -1377,21 +1377,21 @@ export default function ChatPage() {
                       }`}
                     >
                       <div
-                        className={`w-fit max-w-[min(32rem,80vw)] rounded-2xl px-5 py-3 break-words shadow-sm ${
+                        className={`shadow-refined w-fit max-w-[min(32rem,80vw)] rounded-2xl px-5 py-3 break-words ${
                           message.role === "user"
-                            ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+                            ? "bg-gradient-to-r from-gray-700 to-gray-800 text-white dark:from-gray-200 dark:to-gray-300 dark:text-gray-900"
                             : message.isLoading
                               ? "border border-gray-200/60 bg-gray-50/80 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-700/80"
-                              : "border border-gray-200/60 bg-white/90 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/90"
+                              : "gradient-card border border-gray-200/60 dark:border-gray-700/60"
                         }`}
                       >
                         {message.isLoading ? (
                           <div className="space-y-3">
                             <div className="flex items-center space-x-3">
                               <div className="flex space-x-1">
-                                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-0.3s] dark:bg-blue-500"></div>
-                                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 [animation-delay:-0.15s] dark:bg-blue-500"></div>
-                                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-400 dark:bg-blue-500"></div>
+                                <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s] dark:bg-gray-500"></div>
+                                <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s] dark:bg-gray-500"></div>
+                                <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500"></div>
                               </div>
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                                 AI is thinking...
@@ -1408,9 +1408,9 @@ export default function ChatPage() {
                           </div>
                         ) : (
                           <div
-                            className={`overflow-wrap-anywhere leading-relaxed break-words ${
+                            className={`overflow-wrap-anywhere text-refined leading-relaxed break-words ${
                               message.role === "user"
-                                ? "text-white"
+                                ? "text-white dark:text-gray-900"
                                 : "text-gray-900 dark:text-gray-100"
                             }`}
                             dangerouslySetInnerHTML={{
@@ -1437,7 +1437,7 @@ export default function ChatPage() {
                                   generateAIResponseMutation.isPending ||
                                   addMessageMutation.isPending
                                 }
-                                className="flex items-center space-x-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 transition-all duration-200 hover:border-green-300 hover:bg-green-100 active:bg-green-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 dark:hover:border-green-700 dark:hover:bg-green-900/30 dark:active:bg-green-900/40"
+                                className="flex items-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800/20 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800/30 dark:active:bg-gray-800/40"
                               >
                                 <svg
                                   className="h-4 w-4"
@@ -1487,9 +1487,9 @@ export default function ChatPage() {
                           )}
 
                         <div
-                          className={`mt-2 text-xs ${
+                          className={`text-refined mt-2 text-xs ${
                             message.role === "user"
-                              ? "text-blue-100/80"
+                              ? "text-white/70 dark:text-gray-900/70"
                               : "text-gray-500 dark:text-gray-400"
                           }`}
                         >
@@ -1504,7 +1504,7 @@ export default function ChatPage() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-200/60 bg-white/90 p-6 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/90">
+          <div className="border-t border-gray-200/60 p-6 dark:border-gray-700/60">
             <div className="flex space-x-3">
               <div className="relative flex-1">
                 <input
@@ -1532,7 +1532,7 @@ export default function ChatPage() {
                       ? "Sending message..."
                       : "Type your message..."
                   }
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-12 transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-blue-400 dark:disabled:bg-gray-800"
+                  className="text-refined w-full rounded-xl border border-gray-300 px-4 py-3 pr-12 transition-colors focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-gray-400 dark:disabled:bg-gray-800"
                   disabled={
                     !currentThreadId ||
                     isSendingRef.current ||
@@ -1564,7 +1564,7 @@ export default function ChatPage() {
                   isSendingRef.current ||
                   generateAIResponseMutation.isPending
                 }
-                className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                className="hover:shadow-elegant flex items-center space-x-2 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-3 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
               >
                 {isSendingRef.current ||
                 generateAIResponseMutation.isPending ? (
@@ -1596,13 +1596,13 @@ export default function ChatPage() {
         </div>
 
         {/* Calendar Pane */}
-        <div className="flex w-1/3 flex-col bg-white/80 backdrop-blur-sm dark:bg-gray-800/80">
-          <div className="border-b border-gray-200/60 bg-white/90 p-6 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/90">
+        <div className="gradient-card flex w-2/5 flex-col backdrop-blur-sm">
+          <div className="border-b border-gray-200/60 p-6 dark:border-gray-700/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-green-500 to-green-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
                   <svg
-                    className="h-4 w-4 text-white"
+                    className="h-4 w-4 text-white dark:text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1622,7 +1622,7 @@ export default function ChatPage() {
               <button
                 onClick={fetchEvents}
                 disabled={eventsLoading}
-                className="flex items-center space-x-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                className="hover:shadow-elegant flex items-center space-x-2 rounded-lg bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 dark:from-gray-700 dark:to-gray-800 dark:text-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700"
               >
                 {eventsLoading ? (
                   <>
@@ -1653,10 +1653,10 @@ export default function ChatPage() {
 
           <div className="flex-1 overflow-y-auto p-6">
             {eventsError ? (
-              <div className="py-8 text-center text-red-500 dark:text-red-400">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/50">
+              <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800/50">
                   <svg
-                    className="h-6 w-6 text-red-500 dark:text-red-400"
+                    className="h-6 w-6 text-gray-500 dark:text-gray-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1673,7 +1673,7 @@ export default function ChatPage() {
                 <p className="mb-4 text-sm">{eventsError}</p>
                 <button
                   onClick={fetchEvents}
-                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700"
+                  className="hover:shadow-elegant rounded-lg bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:from-gray-500 hover:to-gray-600 dark:from-gray-400 dark:to-gray-500 dark:text-gray-900 dark:hover:from-gray-300 dark:hover:to-gray-400"
                 >
                   Try Again
                 </button>
@@ -1722,12 +1722,12 @@ export default function ChatPage() {
                     return (
                       <div
                         key={event.id ?? index}
-                        className={`rounded-xl border p-4 shadow-sm transition-all duration-200 hover:shadow-md ${
+                        className={`shadow-refined hover:shadow-elegant rounded-xl border p-4 transition-all duration-200 ${
                           isPast
-                            ? "border-gray-200/60 bg-gray-50/80 opacity-75 dark:border-gray-700/60 dark:bg-gray-800/80"
+                            ? "border-gray-200/60 bg-gray-50/80 opacity-75 dark:border-gray-700/60 dark:bg-gray-700/20"
                             : isToday
-                              ? "border-blue-300/60 bg-gradient-to-r from-blue-50 to-blue-100/80 dark:border-blue-600/60 dark:from-blue-900/50 dark:to-blue-800/50"
-                              : "border-gray-200/60 bg-white/90 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/90"
+                              ? "border-gray-300/60 bg-gradient-to-r from-gray-100 to-gray-200/80 dark:border-gray-600/60 dark:from-black/10 dark:to-gray-700/50"
+                              : "border-gray-200/60 bg-white/90 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-700/10"
                         } ${event.isOptimistic && !event.isConfirmed ? "animate-pulse" : ""}`}
                       >
                         <div className="flex-1">
@@ -1773,17 +1773,17 @@ export default function ChatPage() {
                             </div>
                             <div className="flex flex-col items-end space-y-1">
                               {isToday && (
-                                <span className="rounded-full bg-blue-500 px-2 py-1 text-xs font-medium text-white dark:bg-blue-600">
+                                <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
                                   Today
                                 </span>
                               )}
                               {isPast && (
-                                <span className="rounded-full bg-gray-500 px-2 py-1 text-xs font-medium text-white dark:bg-gray-600">
+                                <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
                                   Past
                                 </span>
                               )}
                               {event.isOptimistic && !event.isConfirmed && (
-                                <span className="rounded-full bg-yellow-500 px-2 py-1 text-xs font-medium text-white dark:bg-yellow-600">
+                                <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
                                   Creating...
                                 </span>
                               )}

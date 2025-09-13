@@ -13,16 +13,18 @@ export default function Navbar() {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <nav className="border-b border-gray-200/60 bg-white/90 shadow-sm backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-900/90">
+    <nav className="gradient-card shadow-refined border-b border-gray-200/60 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo and Brand */}
           <div className="flex items-center">
             <Link href="/" className="group flex items-center space-x-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-200 group-hover:from-blue-600 group-hover:to-blue-700">
-                <span className="text-sm font-bold text-white">AI</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-gray-700 to-gray-800 transition-all duration-200 group-hover:from-gray-600 group-hover:to-gray-700 dark:from-gray-300 dark:to-gray-400 dark:group-hover:from-gray-200 dark:group-hover:to-gray-300">
+                <span className="text-sm font-bold text-white dark:text-white">
+                  AI
+                </span>
               </div>
-              <span className="text-xl font-semibold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
+              <span className="text-refined text-xl font-semibold text-gray-900 transition-colors group-hover:text-gray-600 dark:text-gray-100 dark:group-hover:text-gray-300">
                 Calendar Assistant
               </span>
             </Link>
@@ -35,7 +37,7 @@ export default function Navbar() {
                 href="/chat"
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
                   isActive("/chat")
-                    ? "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 shadow-sm dark:from-blue-900/50 dark:to-blue-800/50 dark:text-blue-300"
+                    ? "shadow-refined bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 dark:from-gray-800 dark:to-gray-700 dark:text-gray-300"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
                 }`}
               >
@@ -102,11 +104,11 @@ export default function Navbar() {
                     <img
                       src={session.user.image}
                       alt="Profile"
-                      className="h-8 w-8 rounded-full ring-2 ring-gray-200 transition-all duration-200 group-hover:ring-blue-300 dark:ring-gray-700 dark:group-hover:ring-blue-500"
+                      className="h-8 w-8 rounded-full ring-2 ring-gray-200 transition-all duration-200 group-hover:ring-gray-300 dark:ring-gray-700 dark:group-hover:ring-gray-500"
                     />
                   )}
                   <div className="text-sm">
-                    <p className="font-medium text-gray-900 transition-colors group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
+                    <p className="text-refined font-medium text-gray-900 transition-colors group-hover:text-gray-600 dark:text-gray-100 dark:group-hover:text-gray-300">
                       {session.user?.name}
                     </p>
                     <p className="text-gray-500 dark:text-gray-400">
@@ -124,11 +126,11 @@ export default function Navbar() {
                     <img
                       src={session.user.image}
                       alt="Profile"
-                      className="h-8 w-8 rounded-full ring-2 ring-gray-200 transition-all duration-200 group-hover:ring-blue-300 dark:ring-gray-700 dark:group-hover:ring-blue-500"
+                      className="h-8 w-8 rounded-full ring-2 ring-gray-200 transition-all duration-200 group-hover:ring-gray-300 dark:ring-gray-700 dark:group-hover:ring-gray-500"
                     />
                   ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-200 group-hover:from-blue-600 group-hover:to-blue-700">
-                      <span className="text-sm font-medium text-white">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 transition-all duration-200 group-hover:from-gray-600 group-hover:to-gray-700 dark:from-gray-300 dark:to-gray-400 dark:group-hover:from-gray-200 dark:group-hover:to-gray-300">
+                      <span className="text-sm font-medium text-white dark:text-white">
                         {session.user?.name?.charAt(0) ?? "U"}
                       </span>
                     </div>
@@ -146,7 +148,7 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={() => signIn("google")}
-                className="rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-[0.98]"
+                className="hover:shadow-elegant rounded-lg bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
               >
                 Sign In
               </button>
@@ -162,7 +164,7 @@ export default function Navbar() {
                 href="/chat"
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
                   isActive("/chat")
-                    ? "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 shadow-sm dark:from-blue-900/50 dark:to-blue-800/50 dark:text-blue-300"
+                    ? "shadow-refined bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 dark:from-gray-800 dark:to-gray-700 dark:text-gray-300"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
                 }`}
               >
