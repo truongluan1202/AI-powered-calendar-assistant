@@ -1115,7 +1115,7 @@ export default function ChatPage() {
         <div className="border-b border-gray-200/60 p-6 dark:border-gray-700/60">
           <button
             onClick={createNewThread}
-            className="hover:shadow-elegant w-full rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-2 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
+            className="hover:shadow-elegant w-full rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-1.75 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
           >
             <span className="flex items-center justify-center space-x-2">
               <svg
@@ -1532,7 +1532,7 @@ export default function ChatPage() {
                       ? "Sending message..."
                       : "Type your message..."
                   }
-                  className="text-refined w-full rounded-xl border border-gray-300 px-4 py-3 pr-12 transition-colors focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-gray-400 dark:disabled:bg-gray-800"
+                  className="text-refined w-full rounded-xl border border-gray-300 px-4 py-3 pr-12 transition-colors focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700/30 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-gray-400 dark:disabled:bg-gray-800"
                   disabled={
                     !currentThreadId ||
                     isSendingRef.current ||
@@ -1724,10 +1724,10 @@ export default function ChatPage() {
                         key={event.id ?? index}
                         className={`shadow-refined hover:shadow-elegant rounded-xl border p-4 transition-all duration-200 ${
                           isPast
-                            ? "border-gray-200/60 bg-gray-50/80 opacity-75 dark:border-gray-700/60 dark:bg-gray-700/20"
+                            ? "border-gray-200/60 bg-gray-50/80 opacity-75 dark:border-gray-700/60 dark:bg-gray-700/10"
                             : isToday
                               ? "border-gray-300/60 bg-gradient-to-r from-gray-100 to-gray-200/80 dark:border-gray-600/60 dark:from-black/10 dark:to-gray-700/50"
-                              : "border-gray-200/60 bg-white/90 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-700/10"
+                              : "border-gray-200/60 bg-white/90 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-700/40"
                         } ${event.isOptimistic && !event.isConfirmed ? "animate-pulse" : ""}`}
                       >
                         <div className="flex-1">
