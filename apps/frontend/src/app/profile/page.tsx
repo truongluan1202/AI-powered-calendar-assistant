@@ -92,20 +92,22 @@ export default function ProfilePage() {
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-lg">Loading...</div>
+      <div className="flex h-full items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-lg text-gray-900 dark:text-gray-100">
+          Loading...
+        </div>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-full items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <h1 className="mb-4 text-2xl font-bold text-gray-900">
+          <h1 className="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
             Please sign in to view your profile
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">
             You need to be authenticated to access this page.
           </p>
         </div>
@@ -114,12 +116,14 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="py-8">
+    <div className="h-full overflow-y-auto bg-gray-50 py-8 dark:bg-gray-900">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            Profile
+          </h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400 dark:text-gray-500">
             Manage your account information and preferences.
           </p>
         </div>
@@ -127,10 +131,10 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Profile Information */}
           <div className="lg:col-span-2">
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
+            <div className="rounded-lg bg-white shadow dark:bg-gray-800">
+              <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-medium text-gray-900">
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                     Personal Information
                   </h2>
                   {!isEditing && (
@@ -163,11 +167,13 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                       {session.user?.name || "User"}
                     </h3>
-                    <p className="text-gray-500">{session.user?.email}</p>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      {session.user?.email}
+                    </p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">
                       Profile picture managed by Google
                     </p>
                   </div>
@@ -176,7 +182,7 @@ export default function ProfilePage() {
                 {/* Form Fields */}
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Full Name
                     </label>
                     {isEditing ? (
@@ -185,31 +191,33 @@ export default function ProfilePage() {
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         disabled={updateUserMutation.isPending}
                       />
                     ) : (
-                      <p className="text-gray-900">
+                      <p className="text-gray-900 dark:text-gray-100">
                         {session.user?.name || "Not provided"}
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Email
                     </label>
-                    <p className="text-gray-900">{session.user?.email}</p>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-gray-900 dark:text-gray-100">
+                      {session.user?.email}
+                    </p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">
                       Email is managed by Google
                     </p>
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       User ID
                     </label>
-                    <p className="font-mono text-sm text-gray-900">
+                    <p className="font-mono text-sm text-gray-900 dark:text-gray-100">
                       {session.user?.id}
                     </p>
                   </div>
@@ -217,7 +225,7 @@ export default function ProfilePage() {
 
                 {/* Action Buttons */}
                 {isEditing && (
-                  <div className="flex space-x-3 border-t border-gray-200 pt-4">
+                  <div className="flex space-x-3 border-t border-gray-200 pt-4 dark:border-gray-700">
                     <button
                       onClick={handleSave}
                       disabled={updateUserMutation.isPending}
@@ -243,27 +251,29 @@ export default function ProfilePage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Account Status */}
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h3 className="text-lg font-medium text-gray-900">
+            <div className="rounded-lg bg-white shadow dark:bg-gray-800">
+              <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                   Account Status
                 </h3>
               </div>
               <div className="px-6 py-4">
                 <div className="flex items-center space-x-2">
                   <div className="h-3 w-3 rounded-full bg-green-400"></div>
-                  <span className="text-sm text-gray-600">Active</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                    Active
+                  </span>
                 </div>
-                <p className="mt-2 text-sm text-gray-500">
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                   Your account is active and ready to use.
                 </p>
               </div>
             </div>
 
             {/* Connected Accounts */}
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h3 className="text-lg font-medium text-gray-900">
+            <div className="rounded-lg bg-white shadow dark:bg-gray-800">
+              <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                   Connected Accounts
                 </h3>
               </div>
@@ -273,17 +283,21 @@ export default function ProfilePage() {
                     <span className="text-xs font-bold text-white">G</span>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Google</p>
-                    <p className="text-xs text-gray-500">Connected</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Google
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      Connected
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h3 className="text-lg font-medium text-gray-900">
+            <div className="rounded-lg bg-white shadow dark:bg-gray-800">
+              <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                   Quick Actions
                 </h3>
               </div>

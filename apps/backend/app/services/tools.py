@@ -150,6 +150,93 @@ CALENDAR_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "handleEventConfirmation",
+            "description": "Handle user confirmation for event creation. Use this when user responds with 'confirm', 'cancel', or 'modify [details]' to an event confirmation request.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["confirm", "cancel", "modify"],
+                        "description": "The user's confirmation action: 'confirm' to create the event, 'cancel' to abort, or 'modify' to change details",
+                    },
+                    "eventDetails": {
+                        "type": "object",
+                        "description": "The event details to create (only needed when action is 'confirm')",
+                        "properties": {
+                            "summary": {
+                                "type": "string",
+                                "description": "Title of the event",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Description of the event",
+                            },
+                            "start": {
+                                "type": "object",
+                                "properties": {
+                                    "dateTime": {
+                                        "type": "string",
+                                        "description": "Event start time in RFC3339 format",
+                                    },
+                                    "timeZone": {
+                                        "type": "string",
+                                        "description": "Time zone of the event",
+                                    },
+                                },
+                                "required": ["dateTime"],
+                            },
+                            "end": {
+                                "type": "object",
+                                "properties": {
+                                    "dateTime": {
+                                        "type": "string",
+                                        "description": "Event end time in RFC3339 format",
+                                    },
+                                    "timeZone": {
+                                        "type": "string",
+                                        "description": "Time zone of the event",
+                                    },
+                                },
+                                "required": ["dateTime"],
+                            },
+                            "location": {
+                                "type": "string",
+                                "description": "Geographic location of the event",
+                            },
+                            "attendees": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "email": {
+                                            "type": "string",
+                                            "description": "Attendee's email address",
+                                        },
+                                        "displayName": {
+                                            "type": "string",
+                                            "description": "Attendee's name",
+                                        },
+                                    },
+                                    "required": ["email"],
+                                },
+                                "description": "List of attendees for the event",
+                            },
+                        },
+                        "required": ["summary", "start", "end"],
+                    },
+                    "modifications": {
+                        "type": "string",
+                        "description": "Details of what the user wants to modify (only needed when action is 'modify')",
+                    },
+                },
+                "required": ["action"],
+            },
+        },
+    },
 ]
 
 

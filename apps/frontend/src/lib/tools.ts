@@ -256,6 +256,8 @@ export class ToolExecutor {
           return await this.getEvents(args);
         case "createEvent":
           return await this.createEvent(args);
+        case "handleEventConfirmation":
+          return await this.handleEventConfirmation(args);
         case "webSearch":
           return await this.webSearch(args);
         default:
@@ -429,6 +431,58 @@ export class ToolExecutor {
         success: false,
         error:
           error instanceof Error ? error.message : "Failed to create event",
+      };
+    }
+  }
+
+  private async handleEventConfirmation(args: any): Promise<ToolResult> {
+    try {
+      const { action, eventDetails, modifications } = args;
+
+      switch (action) {
+        case "confirm":
+          if (!eventDetails) {
+            return {
+              tool_call_id: "",
+              content: "Event details are required for confirmation",
+              success: false,
+              error: "Missing eventDetails for confirmation",
+            };
+          }
+          // Create the event using the existing createEvent method
+          return await this.createEvent(eventDetails);
+
+        case "cancel":
+          return {
+            tool_call_id: "",
+            content: "Event creation cancelled by user",
+            success: true,
+          };
+
+        case "modify":
+          return {
+            tool_call_id: "",
+            content: `User wants to modify: ${modifications || "No specific modifications mentioned"}. Please present updated event details for confirmation.`,
+            success: true,
+          };
+
+        default:
+          return {
+            tool_call_id: "",
+            content: `Unknown confirmation action: ${action}`,
+            success: false,
+            error: `Invalid action: ${action}`,
+          };
+      }
+    } catch (error) {
+      return {
+        tool_call_id: "",
+        content: "",
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to handle event confirmation",
       };
     }
   }
