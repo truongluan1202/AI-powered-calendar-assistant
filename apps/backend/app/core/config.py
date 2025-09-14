@@ -23,5 +23,8 @@ class Settings:
     ANTHROPIC_API_KEY: Optional[str] = os.getenv("ANTHROPIC_API_KEY")
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
 
+    # Web Search API Keys
+    SERPAPI_API_KEY: Optional[str] = os.getenv("SERPAPI_API_KEY")
+
 
 settings = Settings()

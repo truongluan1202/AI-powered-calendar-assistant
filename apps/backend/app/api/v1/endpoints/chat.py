@@ -1,5 +1,6 @@
 """Chat endpoints - Pure LLM service without database operations."""
 
+import json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -78,6 +79,72 @@ async def generate_llm_response(request: GenerateRequest):
                 model=request.model_name,
                 tools=tools,
             )
+
+        # Handle webSearch tool calls internally, others by frontend
+        if llm_response.tool_calls:
+            web_search_calls = [
+                call
+                for call in llm_response.tool_calls
+                if call["function"]["name"] == "webSearch"
+            ]
+            other_calls = [
+                call
+                for call in llm_response.tool_calls
+                if call["function"]["name"] != "webSearch"
+            ]
+
+            if web_search_calls:
+                # Handle webSearch tool calls internally
+                tool_results = []
+                updated_messages = llm_messages.copy()
+
+                # Add the assistant's response with tool calls
+                updated_messages.append(
+                    LLMMessage(
+                        role="assistant",
+                        content=llm_response.content,
+                        tool_calls=llm_response.tool_calls,
+                    )
+                )
+
+                # Execute webSearch tool calls
+                for tool_call in web_search_calls:
+                    try:
+                        result = await llm_service.execute_tool_call(tool_call)
+                        tool_results.append(result)
+                    except NotImplementedError:
+                        # Tool not implemented in backend, skip it
+                        pass
+
+                # Add tool results to conversation
+                updated_messages.append(
+                    LLMMessage(role="tool", content=json.dumps(tool_results))
+                )
+
+                # Generate final response with tool results
+                final_response = await llm_service.generate_response(
+                    provider=request.model_provider,
+                    messages=updated_messages,
+                    model=request.model_name,
+                    tools=tools,
+                )
+
+                return GenerateResponse(
+                    content=final_response.content,
+                    provider=final_response.provider,
+                    model=final_response.model,
+                    usage=final_response.usage,
+                    tool_calls=final_response.tool_calls,
+                )
+            else:
+                # Only non-webSearch tool calls, return them for frontend handling
+                return GenerateResponse(
+                    content=llm_response.content,
+                    provider=llm_response.provider,
+                    model=llm_response.model,
+                    usage=llm_response.usage,
+                    tool_calls=other_calls,
+                )
 
         return GenerateResponse(
             content=llm_response.content,

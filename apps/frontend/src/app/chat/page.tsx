@@ -40,6 +40,7 @@ export default function ChatPage() {
   const [showConfirmationButtons, setShowConfirmationButtons] = useState<
     Set<string>
   >(new Set());
+  const [isWebSearching, setIsWebSearching] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const hasInitialized = useRef<boolean>(false);
@@ -91,6 +92,7 @@ export default function ChatPage() {
     });
     setIsExecutingTool(false);
     setIsStreaming(false);
+    setIsWebSearching(false);
     // Don't clear confirmation buttons here - only clear on thread switch
   };
 
@@ -990,6 +992,83 @@ export default function ChatPage() {
     });
   };
 
+  const performWebSearch = async () => {
+    if (!input.trim()) return;
+
+    if (!currentThreadId) {
+      console.error(
+        "No thread selected. Please wait for thread initialization or create a new thread.",
+      );
+      return;
+    }
+
+    // Prevent multiple calls while processing
+    if (
+      isSendingRef.current ||
+      generateAIResponseMutation.isPending ||
+      addMessageMutation.isPending ||
+      isWebSearching
+    ) {
+      return;
+    }
+
+    // Set web searching flag
+    setIsWebSearching(true);
+    isSendingRef.current = true;
+
+    const searchQuery = input.trim();
+    setInput("");
+
+    // Clean up any existing optimistic state before starting new query
+    cleanupOptimisticState();
+
+    // Add optimistic user message immediately
+    const optimisticUserMessage = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: `🔍 Web Search: ${searchQuery}`,
+      createdAt: new Date(),
+      isOptimistic: true,
+    };
+
+    // Add optimistic AI loading message
+    const optimisticAIMessage = {
+      id: `ai-${Date.now()}`,
+      role: "assistant",
+      content: "Searching the web for information...",
+      createdAt: new Date(),
+      isOptimistic: true,
+      isLoading: true,
+      clientKey: `ai-${Date.now()}`,
+    };
+
+    setOptimisticMessages((prev) => {
+      const newMessages = [...prev, optimisticUserMessage, optimisticAIMessage];
+      return newMessages;
+    });
+
+    try {
+      // First save the user message
+      addMessageMutation.mutate({
+        threadId: currentThreadId,
+        role: "user",
+        content: `🔍 Web Search: ${searchQuery}`,
+      });
+
+      // Use the LLM system to handle web search with proper prompts
+      generateAIResponseMutation.mutate({
+        threadId: currentThreadId,
+        message: `🔍 Web Search: ${searchQuery}`,
+        modelProvider: "gemini",
+        modelName: model,
+      });
+    } finally {
+      // Reset flags
+      setIsWebSearching(false);
+      isSendingRef.current = false;
+    }
+  };
+
   const createNewThread = () => {
     createThreadMutation.mutate({
       title: "New Chat",
@@ -1505,7 +1584,51 @@ export default function ChatPage() {
 
           {/* Input */}
           <div className="border-t border-gray-200/60 p-6 dark:border-gray-700/60">
-            <div className="flex space-x-3">
+            {/* Help text */}
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center space-x-6 text-xs">
+                <div className="group flex items-center space-x-2 text-gray-600 dark:text-gray-300">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 transition-all duration-200 group-hover:bg-gray-200 dark:bg-gray-700 dark:group-hover:bg-gray-600">
+                    <svg
+                      className="h-3 w-3 transition-transform duration-200 group-hover:scale-110"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                      />
+                    </svg>
+                  </div>
+                  <span className="font-medium">AI Chat</span>
+                </div>
+                <div className="group flex items-center space-x-2 text-gray-600 dark:text-gray-300">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 transition-all duration-200 group-hover:scale-110 group-hover:bg-gray-200 dark:bg-gray-700 dark:group-hover:bg-gray-600">
+                    <svg
+                      className="h-3 w-3 transition-transform duration-200 group-hover:scale-110"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                  <span className="font-medium">Web Search</span>
+                </div>
+              </div>
+              <div className="text-xs text-gray-400 dark:text-gray-500">
+                Press Enter to send message
+              </div>
+            </div>
+            <div className="relative flex space-x-3">
               <div className="relative flex-1">
                 <input
                   ref={inputRef}
@@ -1519,7 +1642,8 @@ export default function ChatPage() {
                       if (
                         !isSendingRef.current &&
                         !generateAIResponseMutation.isPending &&
-                        !addMessageMutation.isPending
+                        !addMessageMutation.isPending &&
+                        !isWebSearching
                       ) {
                         void send();
                       }
@@ -1528,41 +1652,112 @@ export default function ChatPage() {
                   placeholder={
                     isSendingRef.current ||
                     generateAIResponseMutation.isPending ||
-                    addMessageMutation.isPending
-                      ? "Sending message..."
+                    addMessageMutation.isPending ||
+                    isWebSearching
+                      ? isWebSearching
+                        ? "Searching the web..."
+                        : "Sending message..."
                       : "Type your message..."
                   }
-                  className="text-refined w-full rounded-xl border border-gray-300 px-4 py-3 pr-12 transition-colors focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700/30 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-gray-400 dark:disabled:bg-gray-800"
+                  className="text-refined w-full rounded-xl border border-gray-300 px-4 py-3 pr-12 transition-all duration-200 hover:border-gray-400 focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700/30 dark:text-gray-100 dark:placeholder-gray-400 dark:hover:border-gray-500 dark:focus:border-gray-400 dark:disabled:bg-gray-800"
                   disabled={
                     !currentThreadId ||
                     isSendingRef.current ||
                     generateAIResponseMutation.isPending ||
-                    addMessageMutation.isPending
+                    addMessageMutation.isPending ||
+                    isWebSearching
                   }
                 />
                 <div className="absolute top-1/2 right-3 -translate-y-1/2">
-                  <svg
-                    className="h-5 w-5 text-gray-400 dark:text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
+                  {isWebSearching ? (
+                    <div className="flex h-5 w-5 items-center justify-center">
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
+                    </div>
+                  ) : (
+                    <svg
+                      className="h-5 w-5 text-gray-400 transition-colors duration-200 dark:text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                  )}
                 </div>
               </div>
+
+              {/* Web Search Button */}
+              <button
+                onClick={performWebSearch}
+                disabled={
+                  !input.trim() ||
+                  !currentThreadId ||
+                  isSendingRef.current ||
+                  generateAIResponseMutation.isPending ||
+                  isWebSearching
+                }
+                className={`group relative flex items-center space-x-2 rounded-xl px-5 py-3 font-medium text-white transition-all duration-300 ${
+                  isWebSearching
+                    ? "cursor-wait bg-gradient-to-r from-gray-600 to-gray-700"
+                    : "bg-gradient-to-r from-gray-700 to-gray-800 hover:scale-[1.02] hover:from-gray-600 hover:to-gray-700 hover:shadow-lg hover:shadow-gray-500/25 active:scale-[0.98]"
+                } border border-gray-600/20 hover:border-gray-500/30 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none`}
+                title="Search the web for information"
+              >
+                {/* Animated background effect */}
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-gray-500 to-gray-600 opacity-0 transition-opacity duration-300 group-hover:opacity-20 group-disabled:opacity-0" />
+
+                {/* Button content */}
+                <div className="relative flex items-center space-x-2">
+                  {isWebSearching ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent">
+                        <div className="h-full w-full animate-pulse rounded-full bg-white/20" />
+                      </div>
+                      <span className="animate-pulse">Searching...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-4 w-4 transition-transform duration-200 group-hover:scale-110"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                      <span className="font-semibold">Search</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Ripple effect on click */}
+                <div className="absolute inset-0 scale-0 rounded-xl bg-white/20 transition-transform duration-150 group-active:scale-100" />
+
+                {/* Ready indicator */}
+                {!isWebSearching && input.trim() && (
+                  <div className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-white bg-gray-400" />
+                )}
+              </button>
+
+              {/* Send Button */}
               <button
                 onClick={send}
                 disabled={
                   !input.trim() ||
                   !currentThreadId ||
                   isSendingRef.current ||
-                  generateAIResponseMutation.isPending
+                  generateAIResponseMutation.isPending ||
+                  isWebSearching
                 }
                 className="hover:shadow-elegant flex items-center space-x-2 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-3 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
               >
@@ -1596,7 +1791,7 @@ export default function ChatPage() {
         </div>
 
         {/* Calendar Pane */}
-        <div className="gradient-card flex w-2/5 flex-col backdrop-blur-sm">
+        <div className="gradient-card flex w-100 flex-col backdrop-blur-sm">
           <div className="border-b border-gray-200/60 p-6 dark:border-gray-700/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">

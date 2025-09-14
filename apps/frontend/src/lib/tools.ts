@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/server/auth";
 import { makeGoogleApiCall } from "./token-manager";
+import { env } from "~/env";
 
 export interface ToolCall {
   id: string;
@@ -259,7 +260,12 @@ export class ToolExecutor {
         case "handleEventConfirmation":
           return await this.handleEventConfirmation(args);
         case "webSearch":
-          return await this.webSearch(args);
+          // Web search is now handled by the backend directly
+          return {
+            tool_call_id: toolCall.id,
+            content: "Web search handled by backend",
+            success: true,
+          };
         default:
           return {
             tool_call_id: toolCall.id,
@@ -485,23 +491,6 @@ export class ToolExecutor {
             : "Failed to handle event confirmation",
       };
     }
-  }
-
-  private async webSearch(args: any): Promise<ToolResult> {
-    // For now, return a placeholder. You can integrate with a search API later.
-    return {
-      tool_call_id: "",
-      content: JSON.stringify({
-        results: [
-          {
-            title: "Web search not implemented",
-            snippet: "This feature will be available soon.",
-            url: "#",
-          },
-        ],
-      }),
-      success: true,
-    };
   }
 }
 

@@ -12,6 +12,7 @@ import anthropic
 import google.genai as genai
 
 from app.core.config import settings
+from app.services.web_search import web_search_service
 
 
 # ----------------------------
@@ -407,19 +408,28 @@ class LLMService:
                 "IMPORTANT: You MUST use tools to answer calendar-related questions. Do not try to answer "
                 "calendar questions without using the appropriate tools. Here are the key rules:\n"
                 "- For ANY question about existing events, upcoming events, or calendar queries, ALWAYS use getEvents tool\n"
-                "- For creating new events, ALWAYS ask for confirmation before using createEvent tool\n"
+                "- For creating new events, NEVER use createEvent tool directly - ALWAYS use handleEventConfirmation tool\n"
                 "- For general information not related to the user's calendar, use webSearch tool\n"
                 "- ALWAYS use the current time above when creating events or interpreting time references\n"
                 "\n"
+                "WEB SEARCH AND EVENT CREATION FLOW:\n"
+                "When a user performs a web search (indicated by '🔍 Web Search:' prefix), follow this process:\n"
+                "1. Present the search results clearly and informatively\n"
+                "2. If the search results contain information that could be used to create a calendar event (like sports matches, concerts, conferences, etc.), ask the user if they want to create an event based on that information\n"
+                "3. If the user responds with ANY positive answer (yes, yes please, sure, ok, create it, etc.), ALWAYS show the confirmation format with event details\n"
+                "4. NEVER create an event directly - ALWAYS require explicit confirmation via the confirmation format\n"
+                "5. Wait for user to type 'confirm' or 'cancel' before proceeding\n"
+                "\n"
                 "EVENT CREATION CONFIRMATION PROCESS:\n"
-                "When a user wants to create an event, follow this process:\n"
-                "1. First, present the event details clearly in a confirmation format\n"
+                "When a user wants to create an event (either directly or after web search), follow this process:\n"
+                "1. First, present the event details clearly in a confirmation format (DO NOT call createEvent tool yet)\n"
                 "2. Ask the user to confirm with 'confirm', 'cancel', or 'modify [details]'\n"
-                "3. When user responds with confirmation, use handleEventConfirmation tool:\n"
+                "3. ONLY when user responds with 'confirm', use handleEventConfirmation tool:\n"
                 "   - If 'confirm': use handleEventConfirmation with action='confirm' and eventDetails\n"
                 "   - If 'cancel': use handleEventConfirmation with action='cancel'\n"
                 "   - If 'modify [details]': use handleEventConfirmation with action='modify' and modifications\n"
                 "4. The handleEventConfirmation tool will handle the actual event creation or cancellation\n"
+                "5. NEVER call createEvent tool directly - always use handleEventConfirmation tool\n"
                 "\n"
                 "CONFIRMATION FORMAT:\n"
                 "When asking for confirmation, use this format:\n"
@@ -438,6 +448,14 @@ class LLMService:
                 "- 'What's my next event?' → getEvents with timeMin=now, maxResults=1\n"
                 "- 'Do I have any meetings today?' → getEvents with timeMin=today start, timeMax=today end\n"
                 "- 'Show me my schedule for next week' → getEvents with timeMin=next week start, timeMax=next week end\n"
+                "\n"
+                "Examples of web search and event creation flow:\n"
+                "- User searches 'Manchester United vs Arsenal match tomorrow' → Show search results, then ask 'Would you like me to create a calendar event for this match?'\n"
+                "- User responds 'Yes please' → Show confirmation format with event details, wait for 'confirm'\n"
+                "- User searches 'Taylor Swift concert Sydney' → Show search results, then ask 'Would you like me to add this concert to your calendar?'\n"
+                "- User responds 'Sure' → Show confirmation format with event details, wait for 'confirm'\n"
+                "- User searches 'AI conference next month' → Show search results, then ask 'Would you like me to create an event for this conference?'\n"
+                "- User responds 'Yes' → Show confirmation format with event details, wait for 'confirm'\n"
                 "\n"
                 "Examples of event creation confirmation:\n"
                 "- 'Add a meeting with John tomorrow at 2pm' → Show confirmation, wait for user response\n"
@@ -486,60 +504,78 @@ class LLMService:
                 },
             },
             {
-                "name": "createEvent",
-                "description": "Create a new event in Google Calendar",
+                "name": "handleEventConfirmation",
+                "description": "Handle user confirmation for event creation. Use this when user responds with 'confirm', 'cancel', or 'modify [details]' to an event confirmation request.",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "summary": {"type": "string", "description": "The event title"},
-                        "description": {
+                        "action": {
                             "type": "string",
-                            "description": "Description of the event",
+                            "enum": ["confirm", "cancel", "modify"],
+                            "description": "The user's confirmation action: 'confirm' to create the event, 'cancel' to abort, or 'modify' to change details",
                         },
-                        "start": {
+                        "eventDetails": {
                             "type": "object",
+                            "description": "The event details to create (only needed when action is 'confirm')",
                             "properties": {
-                                "dateTime": {
+                                "summary": {
                                     "type": "string",
-                                    "description": "Event start time in RFC3339 format",
+                                    "description": "Title of the event",
                                 },
-                                "timeZone": {
+                                "description": {
                                     "type": "string",
-                                    "description": "Time zone of the event",
+                                    "description": "Description of the event",
+                                },
+                                "start": {
+                                    "type": "object",
+                                    "properties": {
+                                        "dateTime": {
+                                            "type": "string",
+                                            "description": "Event start time in RFC3339 format",
+                                        },
+                                        "timeZone": {
+                                            "type": "string",
+                                            "description": "Time zone of the event",
+                                        },
+                                    },
+                                },
+                                "end": {
+                                    "type": "object",
+                                    "properties": {
+                                        "dateTime": {
+                                            "type": "string",
+                                            "description": "Event end time in RFC3339 format",
+                                        },
+                                        "timeZone": {
+                                            "type": "string",
+                                            "description": "Time zone of the event",
+                                        },
+                                    },
+                                },
+                                "location": {
+                                    "type": "string",
+                                    "description": "Geographic location of the event",
+                                },
+                                "attendees": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "email": {
+                                                "type": "string",
+                                                "description": "Attendee's email address",
+                                            },
+                                        },
+                                    },
                                 },
                             },
                         },
-                        "end": {
-                            "type": "object",
-                            "properties": {
-                                "dateTime": {
-                                    "type": "string",
-                                    "description": "Event end time in RFC3339 format",
-                                },
-                                "timeZone": {
-                                    "type": "string",
-                                    "description": "Time zone of the event",
-                                },
-                            },
-                        },
-                        "location": {
+                        "modifications": {
                             "type": "string",
-                            "description": "Geographic location of the event",
-                        },
-                        "attendees": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "email": {
-                                        "type": "string",
-                                        "description": "Attendee's email address",
-                                    }
-                                },
-                            },
+                            "description": "Description of modifications requested by user (only needed when action is 'modify')",
                         },
                     },
-                    "required": ["summary", "start", "end"],
+                    "required": ["action"],
                 },
             },
             {
@@ -588,6 +624,58 @@ class LLMService:
         message_lower = user_message.lower()
         return any(keyword in message_lower for keyword in calendar_keywords)
 
+    def is_web_search_query(self, user_message: str) -> bool:
+        """Detect if a user message is a web search request."""
+        return user_message.startswith("🔍 Web Search:")
+
+    async def execute_tool_call(self, tool_call: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a tool call and return the result."""
+        try:
+            tool_name = tool_call["function"]["name"]
+            args = json.loads(tool_call["function"]["arguments"])
+
+            if tool_name == "webSearch":
+                # Execute web search directly
+                query = args.get("query", "")
+                max_results = args.get("maxResults", 5)
+
+                search_results = await web_search_service.search(query, max_results)
+
+                if "error" in search_results:
+                    return {
+                        "tool_call_id": tool_call["id"],
+                        "content": f"Web search failed: {search_results['error']}",
+                        "success": False,
+                        "error": search_results["error"],
+                    }
+
+                # Format results for the LLM
+                formatted_content = f"Web search results for '{query}':\n\n"
+                for i, result in enumerate(search_results["results"], 1):
+                    formatted_content += f"{i}. **{result['title']}**\n"
+                    formatted_content += f"   {result['snippet']}\n"
+                    formatted_content += f"   URL: {result['url']}\n\n"
+
+                return {
+                    "tool_call_id": tool_call["id"],
+                    "content": formatted_content,
+                    "success": True,
+                }
+            else:
+                # For other tools (getEvents, handleEventConfirmation), don't execute them
+                # They should be handled by the frontend
+                raise NotImplementedError(
+                    f"Tool '{tool_name}' not implemented in backend"
+                )
+
+        except Exception as e:
+            return {
+                "tool_call_id": tool_call["id"],
+                "content": "",
+                "success": False,
+                "error": f"Tool execution failed: {str(e)}",
+            }
+
     async def generate_calendar_response(
         self,
         provider: str,
@@ -615,17 +703,27 @@ class LLMService:
                 f"For any calendar question, use this current time to interpret 'today', 'tomorrow', 'this week', 'this month', etc.\n\n"
                 "CRITICAL RULES:\n"
                 "1. For ANY question about existing events, upcoming events, or calendar queries, you MUST use getEvents tool\n"
-                "2. For creating new events, ALWAYS ask for confirmation before using createEvent tool\n"
+                "2. For creating new events, NEVER use createEvent tool directly - ALWAYS use handleEventConfirmation tool\n"
                 "3. For general information not related to the user's calendar, use webSearch tool\n"
                 "4. Never say 'I don't have access to your calendar' - you DO have access via tools\n"
                 "5. ALWAYS use the current time above when creating events or interpreting time references\n\n"
+                "WEB SEARCH AND EVENT CREATION FLOW:\n"
+                "When a user performs a web search (indicated by '🔍 Web Search:' prefix), follow this process:\n"
+                "1. Present the search results clearly and informatively\n"
+                "2. If the search results contain information that could be used to create a calendar event (like sports matches, concerts, conferences, etc.), ask the user if they want to create an event based on that information\n"
+                "3. If the user responds with ANY positive answer (yes, yes please, sure, ok, create it, etc.), ALWAYS show the confirmation format with event details\n"
+                "4. NEVER create an event directly - ALWAYS require explicit confirmation via the confirmation format\n"
+                "5. Wait for user to type 'confirm' or 'cancel' before proceeding\n\n"
                 "EVENT CREATION CONFIRMATION PROCESS:\n"
-                "When a user wants to create an event, follow this process:\n"
-                "1. First, present the event details clearly in a confirmation format\n"
+                "When a user wants to create an event (either directly or after web search), follow this process:\n"
+                "1. First, present the event details clearly in a confirmation format (DO NOT call createEvent tool yet)\n"
                 "2. Ask the user to confirm with 'confirm', 'cancel', or 'modify [details]'\n"
-                "3. Only use the createEvent tool after the user confirms with 'confirm'\n"
-                "4. If user says 'cancel', acknowledge and don't create the event\n"
-                "5. If user says 'modify [details]', update the event details and ask for confirmation again\n\n"
+                "3. ONLY when user responds with 'confirm', use handleEventConfirmation tool:\n"
+                "   - If 'confirm': use handleEventConfirmation with action='confirm' and eventDetails\n"
+                "   - If 'cancel': use handleEventConfirmation with action='cancel'\n"
+                "   - If 'modify [details]': use handleEventConfirmation with action='modify' and modifications\n"
+                "4. The handleEventConfirmation tool will handle the actual event creation or cancellation\n"
+                "5. NEVER call createEvent tool directly - always use handleEventConfirmation tool\n\n"
                 "CONFIRMATION FORMAT:\n"
                 "When asking for confirmation, use this format:\n"
                 "---\n"
@@ -653,6 +751,13 @@ class LLMService:
                 "→ Use getEvents with timeMin=today start, timeMax=today end\n\n"
                 "User: 'Add a meeting with John tomorrow at 2pm'\n"
                 "→ Show confirmation with event details, wait for user response\n\n"
+                "EXAMPLES OF WEB SEARCH AND EVENT CREATION FLOW:\n"
+                "User searches 'Manchester United vs Arsenal match tomorrow' → Show search results, then ask 'Would you like me to create a calendar event for this match?'\n"
+                "User responds 'Yes please' → Show confirmation format with event details, wait for 'confirm'\n"
+                "User searches 'Taylor Swift concert Sydney' → Show search results, then ask 'Would you like me to add this concert to your calendar?'\n"
+                "User responds 'Sure' → Show confirmation format with event details, wait for 'confirm'\n"
+                "User searches 'AI conference next month' → Show search results, then ask 'Would you like me to create an event for this conference?'\n"
+                "User responds 'Yes' → Show confirmation format with event details, wait for 'confirm'\n\n"
                 "EXAMPLES OF VAGUE REQUESTS WITH CONFIRMATION:\n"
                 "User: 'add a meeting with andy tomorrow at 3pm'\n"
                 "→ Show confirmation with summary='Meeting with Andy', start='tomorrow 3pm', end='tomorrow 4pm', wait for user response\n\n"
