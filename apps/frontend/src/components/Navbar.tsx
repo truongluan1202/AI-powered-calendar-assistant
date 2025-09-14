@@ -18,14 +18,18 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo and Brand */}
           <div className="flex items-center">
-            <Link href="/" className="group flex items-center space-x-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-gray-700 to-gray-800 transition-all duration-200 group-hover:from-gray-600 group-hover:to-gray-700 dark:from-gray-300 dark:to-gray-400 dark:group-hover:from-gray-200 dark:group-hover:to-gray-300">
-                <span className="text-sm font-bold text-white dark:text-white">
+            <Link
+              href="/"
+              className="group flex items-center space-x-2 sm:space-x-3"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-r from-gray-700 to-gray-800 transition-all duration-200 group-hover:from-gray-600 group-hover:to-gray-700 sm:h-9 sm:w-9 dark:from-gray-300 dark:to-gray-400 dark:group-hover:from-gray-200 dark:group-hover:to-gray-300">
+                <span className="text-xs font-bold text-white sm:text-sm dark:text-white">
                   AI
                 </span>
               </div>
-              <span className="text-refined text-xl font-semibold text-gray-900 transition-colors group-hover:text-gray-600 dark:text-gray-100 dark:group-hover:text-gray-300">
-                Calendar Assistant
+              <span className="text-refined text-lg font-semibold text-gray-900 transition-colors group-hover:text-gray-600 sm:text-xl dark:text-gray-100 dark:group-hover:text-gray-300">
+                <span className="hidden sm:inline">Calendar Assistant</span>
+                <span className="sm:hidden">CA</span>
               </span>
             </Link>
           </div>
@@ -47,7 +51,7 @@ export default function Navbar() {
           </div>
 
           {/* User Menu */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Theme Toggle */}
             <button
               onClick={() => {
@@ -140,17 +144,19 @@ export default function Navbar() {
                 {/* Sign Out Button */}
                 <button
                   onClick={() => signOut()}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                  className="rounded-lg px-2 py-2 text-sm font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 sm:px-3 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
                 >
-                  Sign Out
+                  <span className="hidden sm:inline">Sign Out</span>
+                  <span className="sm:hidden">Out</span>
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => signIn("google")}
-                className="hover:shadow-elegant rounded-lg bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
+                className="hover:shadow-elegant rounded-lg bg-gradient-to-r from-gray-800 to-gray-900 px-3 py-2 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] sm:px-4 dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
               >
-                Sign In
+                <span className="hidden sm:inline">Sign In</span>
+                <span className="sm:hidden">In</span>
               </button>
             )}
           </div>
@@ -159,7 +165,7 @@ export default function Navbar() {
         {/* Mobile Navigation */}
         {session && (
           <div className="border-t border-gray-200/60 py-3 md:hidden dark:border-gray-700/60">
-            <div className="flex space-x-4">
+            <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
               <Link
                 href="/chat"
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${

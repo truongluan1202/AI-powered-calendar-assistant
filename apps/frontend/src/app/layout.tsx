@@ -14,6 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
@@ -21,12 +22,12 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="gradient-bg h-screen overflow-hidden">
+      <body className="gradient-bg h-screen overflow-auto lg:overflow-hidden">
         <ThemeProvider>
           <SessionProvider>
             <TRPCReactProvider>
               <Navbar />
-              <main className="h-[calc(100vh-4rem)] overflow-hidden">
+              <main className="h-[calc(100vh-4rem)] overflow-auto lg:overflow-hidden">
                 {children}
               </main>
               {/* Debug element to test dark mode */}

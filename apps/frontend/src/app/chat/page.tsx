@@ -41,6 +41,8 @@ export default function ChatPage() {
     Set<string>
   >(new Set());
   const [isWebSearching, setIsWebSearching] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [networkError, setNetworkError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const hasInitialized = useRef<boolean>(false);
@@ -564,7 +566,25 @@ export default function ChatPage() {
       let userMessage = "Sorry, I encountered an error. Please try again.";
       let toastMessage = "❌ Sorry, I encountered an error. Please try again.";
 
-      if (error.message.includes("Unable to connect to AI service")) {
+      // Check for network connectivity issues
+      if (!navigator.onLine) {
+        userMessage =
+          "You appear to be offline. Please check your internet connection and try again.";
+        toastMessage =
+          "📡 You're offline. Please check your internet connection.";
+      } else if (
+        error.message.includes("Failed to fetch") ||
+        error.message.includes("NetworkError") ||
+        error.message.includes("ERR_NETWORK") ||
+        error.message.includes("ERR_INTERNET_DISCONNECTED") ||
+        error.message.includes("ERR_CONNECTION_REFUSED") ||
+        error.message.includes("ERR_CONNECTION_TIMED_OUT")
+      ) {
+        userMessage =
+          "Network connection failed. Please check your internet connection and try again.";
+        toastMessage =
+          "🌐 Network connection failed. Please check your internet.";
+      } else if (error.message.includes("Unable to connect to AI service")) {
         userMessage =
           "I'm unable to connect to the AI service. Please check if the backend is running and try again.";
         toastMessage =
@@ -829,6 +849,34 @@ export default function ChatPage() {
     }
   }, [messages, optimisticMessages]);
 
+  // Network status monitoring
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setNetworkError(null);
+      showToast("🌐 Connection restored!");
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setNetworkError("You're offline. Please check your internet connection.");
+      showToast("📡 You're offline. Please check your internet connection.");
+    };
+
+    // Set initial online status
+    setIsOnline(navigator.onLine);
+
+    // Add event listeners
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   // Clean up optimistic state when component unmounts
   useEffect(() => {
     return () => {
@@ -921,6 +969,12 @@ export default function ChatPage() {
       return;
     }
 
+    // Check network status
+    if (!isOnline) {
+      showToast("📡 You're offline. Please check your internet connection.");
+      return;
+    }
+
     // Prevent multiple calls while processing
     if (
       isSendingRef.current ||
@@ -999,6 +1053,12 @@ export default function ChatPage() {
       console.error(
         "No thread selected. Please wait for thread initialization or create a new thread.",
       );
+      return;
+    }
+
+    // Check network status
+    if (!isOnline) {
+      showToast("📡 You're offline. Please check your internet connection.");
       return;
     }
 
@@ -1172,7 +1232,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="gradient-bg flex h-full">
+    <div className="gradient-bg flex min-h-full flex-col lg:h-full lg:flex-row">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="animate-in slide-in-from-right-5 fixed top-4 right-4 z-50 duration-300">
@@ -1190,8 +1250,8 @@ export default function ChatPage() {
         </div>
       )}
       {/* Left Sidebar - Threads */}
-      <div className="gradient-sidebar flex w-70 flex-col backdrop-blur-sm">
-        <div className="border-b border-gray-200/60 p-6 dark:border-gray-700/60">
+      <div className="gradient-sidebar flex w-full flex-col backdrop-blur-sm lg:max-h-full lg:min-h-0 lg:w-70">
+        <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
           <button
             onClick={createNewThread}
             className="hover:shadow-elegant w-full rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-1.75 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
@@ -1215,7 +1275,7 @@ export default function ChatPage() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="mobile-scrollable flex-1 overflow-y-auto p-3 sm:p-4">
           {threads.length === 0 ? (
             <div className="py-8 text-center text-gray-500 dark:text-gray-400">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
@@ -1245,7 +1305,7 @@ export default function ChatPage() {
               {threads.map((thread: any) => (
                 <div
                   key={thread.id}
-                  className={`group cursor-pointer rounded-xl p-4 transition-all duration-200 ${
+                  className={`group cursor-pointer rounded-xl p-3 transition-all duration-200 sm:p-4 ${
                     currentThreadId === thread.id
                       ? "shadow-refined border border-gray-300 bg-gradient-to-r from-gray-100 to-gray-200 dark:border-gray-600 dark:from-gray-700/10 dark:to-gray-700/50"
                       : "hover:shadow-refined border border-transparent bg-white/60 hover:border-gray-200 hover:bg-white dark:bg-gray-700/20 dark:hover:border-gray-600 dark:hover:bg-gray-800"
@@ -1352,12 +1412,12 @@ export default function ChatPage() {
       </div>
 
       {/* Main Content - Two Panes */}
-      <div className="flex flex-1">
+      <div className="flex min-h-0 flex-1 flex-col lg:min-h-0 xl:flex-row">
         {/* Chat Pane */}
-        <div className="gradient-card flex h-full w-full flex-col backdrop-blur-sm">
+        <div className="gradient-card flex min-h-0 w-full flex-col backdrop-blur-sm lg:h-full">
           {/* Model Selection Header */}
-          <div className="border-b border-gray-200/60 p-6 dark:border-gray-700/60">
-            <div className="flex items-center justify-between">
+          <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
               <div className="flex items-center space-x-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
                   <svg
@@ -1374,11 +1434,11 @@ export default function ChatPage() {
                     />
                   </svg>
                 </div>
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                <h1 className="text-lg font-semibold text-gray-900 sm:text-xl dark:text-gray-100">
                   Chat
                 </h1>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Model:
                 </label>
@@ -1396,7 +1456,7 @@ export default function ChatPage() {
                       });
                     }
                   }}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-gray-400"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none sm:w-auto dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-gray-400"
                 >
                   <option value="gemini-2.5-flash-lite">
                     Gemini 2.5 Flash Lite
@@ -1414,7 +1474,7 @@ export default function ChatPage() {
           {/* Messages */}
           <div
             ref={listRef}
-            className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6"
+            className="mobile-chat-messages min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:space-y-6 sm:p-6"
           >
             {!currentThreadId ? (
               <div className="flex h-full items-center justify-center">
@@ -1456,7 +1516,7 @@ export default function ChatPage() {
                       }`}
                     >
                       <div
-                        className={`shadow-refined w-fit max-w-[min(32rem,80vw)] rounded-2xl px-5 py-3 break-words ${
+                        className={`shadow-refined w-fit max-w-[min(20rem,85vw)] rounded-2xl px-4 py-3 break-words sm:max-w-[min(32rem,80vw)] sm:px-5 ${
                           message.role === "user"
                             ? "bg-gradient-to-r from-gray-700 to-gray-800 text-white dark:from-gray-200 dark:to-gray-300 dark:text-gray-900"
                             : message.isLoading
@@ -1503,7 +1563,7 @@ export default function ChatPage() {
                           !message.isLoading &&
                           isConfirmationMessage(message.content) &&
                           showConfirmationButtons.has(message.id) && (
-                            <div className="mt-4 flex space-x-3">
+                            <div className="mt-4 flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-3">
                               <button
                                 onClick={() =>
                                   handleConfirmation(
@@ -1516,7 +1576,7 @@ export default function ChatPage() {
                                   generateAIResponseMutation.isPending ||
                                   addMessageMutation.isPending
                                 }
-                                className="flex items-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800/20 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800/30 dark:active:bg-gray-800/40"
+                                className="flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto dark:border-gray-700 dark:bg-gray-800/20 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800/30 dark:active:bg-gray-800/40"
                               >
                                 <svg
                                   className="h-4 w-4"
@@ -1545,7 +1605,7 @@ export default function ChatPage() {
                                   generateAIResponseMutation.isPending ||
                                   addMessageMutation.isPending
                                 }
-                                className="flex items-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:bg-gray-600 dark:active:bg-gray-800"
+                                className="flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:bg-gray-600 dark:active:bg-gray-800"
                               >
                                 <svg
                                   className="h-4 w-4"
@@ -1583,10 +1643,22 @@ export default function ChatPage() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-200/60 p-6 dark:border-gray-700/60">
+          <div className="border-t border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
+            {/* Network Status Indicator */}
+            {!isOnline && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
+                <div className="flex items-center space-x-2">
+                  <div className="flex h-2 w-2 rounded-full bg-red-500"></div>
+                  <span className="text-sm font-medium text-red-800 dark:text-red-200">
+                    Offline - Check your internet connection
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Help text */}
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center space-x-6 text-xs">
+            <div className="mb-4 flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+              <div className="flex items-center space-x-4 text-xs sm:space-x-6">
                 <div className="group flex items-center space-x-2 text-gray-600 dark:text-gray-300">
                   <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 transition-all duration-200 group-hover:bg-gray-200 dark:bg-gray-700 dark:group-hover:bg-gray-600">
                     <svg
@@ -1628,7 +1700,7 @@ export default function ChatPage() {
                 Press Enter to send message
               </div>
             </div>
-            <div className="relative flex space-x-3">
+            <div className="relative flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
               <div className="relative flex-1">
                 <input
                   ref={inputRef}
@@ -1650,18 +1722,21 @@ export default function ChatPage() {
                     }
                   }}
                   placeholder={
-                    isSendingRef.current ||
-                    generateAIResponseMutation.isPending ||
-                    addMessageMutation.isPending ||
-                    isWebSearching
-                      ? isWebSearching
-                        ? "Searching the web..."
-                        : "Sending message..."
-                      : "Type your message..."
+                    !isOnline
+                      ? "You're offline. Check your internet connection."
+                      : isSendingRef.current ||
+                          generateAIResponseMutation.isPending ||
+                          addMessageMutation.isPending ||
+                          isWebSearching
+                        ? isWebSearching
+                          ? "Searching the web..."
+                          : "Sending message..."
+                        : "Type your message..."
                   }
                   className="text-refined w-full rounded-xl border border-gray-300 px-4 py-3 pr-12 transition-all duration-200 hover:border-gray-400 focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700/30 dark:text-gray-100 dark:placeholder-gray-400 dark:hover:border-gray-500 dark:focus:border-gray-400 dark:disabled:bg-gray-800"
                   disabled={
                     !currentThreadId ||
+                    !isOnline ||
                     isSendingRef.current ||
                     generateAIResponseMutation.isPending ||
                     addMessageMutation.isPending ||
@@ -1697,11 +1772,12 @@ export default function ChatPage() {
                 disabled={
                   !input.trim() ||
                   !currentThreadId ||
+                  !isOnline ||
                   isSendingRef.current ||
                   generateAIResponseMutation.isPending ||
                   isWebSearching
                 }
-                className={`group relative flex items-center space-x-2 rounded-xl px-5 py-3 font-medium text-white transition-all duration-300 ${
+                className={`group relative flex w-full items-center justify-center space-x-2 rounded-xl px-4 py-3 font-medium text-white transition-all duration-300 sm:w-auto sm:px-5 ${
                   isWebSearching
                     ? "cursor-wait bg-gradient-to-r from-gray-600 to-gray-700"
                     : "bg-gradient-to-r from-gray-700 to-gray-800 hover:scale-[1.02] hover:from-gray-600 hover:to-gray-700 hover:shadow-lg hover:shadow-gray-500/25 active:scale-[0.98]"
@@ -1755,11 +1831,12 @@ export default function ChatPage() {
                 disabled={
                   !input.trim() ||
                   !currentThreadId ||
+                  !isOnline ||
                   isSendingRef.current ||
                   generateAIResponseMutation.isPending ||
                   isWebSearching
                 }
-                className="hover:shadow-elegant flex items-center space-x-2 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-3 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
+                className="hover:shadow-elegant flex w-full items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6 dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
               >
                 {isSendingRef.current ||
                 generateAIResponseMutation.isPending ? (
@@ -1791,9 +1868,9 @@ export default function ChatPage() {
         </div>
 
         {/* Calendar Pane */}
-        <div className="gradient-card flex w-100 flex-col backdrop-blur-sm">
-          <div className="border-b border-gray-200/60 p-6 dark:border-gray-700/60">
-            <div className="flex items-center justify-between">
+        <div className="gradient-card flex min-h-0 w-full flex-col backdrop-blur-sm xl:h-full xl:w-100">
+          <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
               <div className="flex items-center space-x-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
                   <svg
@@ -1817,7 +1894,7 @@ export default function ChatPage() {
               <button
                 onClick={fetchEvents}
                 disabled={eventsLoading}
-                className="hover:shadow-elegant flex items-center space-x-2 rounded-lg bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 dark:from-gray-700 dark:to-gray-800 dark:text-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700"
+                className="hover:shadow-elegant flex w-full items-center justify-center space-x-2 rounded-lg bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 sm:w-auto dark:from-gray-700 dark:to-gray-800 dark:text-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700"
               >
                 {eventsLoading ? (
                   <>
@@ -1846,7 +1923,7 @@ export default function ChatPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="mobile-scrollable flex-1 overflow-y-auto p-4 sm:p-6 lg:max-h-96">
             {eventsError ? (
               <div className="py-8 text-center text-gray-500 dark:text-gray-400">
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800/50">
