@@ -15,7 +15,7 @@ export default function ChatPage() {
   const { data: session, status } = useSession();
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [input, setInput] = useState<string>("");
-  const [model, setModel] = useState<GeminiModel>("gemini-2.5-flash-lite");
+  const [model, setModel] = useState<GeminiModel>("gemini-2.5-flash");
   const [editingThread, setEditingThread] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
   const [optimisticMessages, setOptimisticMessages] = useState<
@@ -780,7 +780,7 @@ export default function ChatPage() {
           setModel(selectedThread.modelName as GeminiModel);
         } else {
           // Fallback to default model if thread has invalid model
-          setModel("gemini-2.5-flash-lite");
+          setModel("gemini-2.5-flash");
         }
       }
     }
@@ -1171,11 +1171,39 @@ export default function ChatPage() {
 
   if (status === "loading") {
     return (
-      <div className="gradient-bg flex h-full items-center justify-center">
+      <div className="relative z-10 flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-6 h-16 w-16 animate-spin rounded-full border-4 border-gray-500 border-t-transparent dark:border-gray-200"></div>
-          <div className="text-lg font-medium text-gray-900 dark:text-gray-200">
-            Loading...
+          {/* Logo */}
+          <div className="mb-6 flex justify-center">
+            <div className="animate-pulse-glow animate-float animate-shimmer flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-gray-900 to-gray-950 dark:from-gray-400 dark:to-gray-500">
+              <span className="text-xl font-bold text-gray-900 dark:text-white">
+                Cal
+              </span>
+            </div>
+          </div>
+
+          {/* Loading Animation */}
+          <div className="mb-6">
+            <div className="relative mx-auto h-12 w-12">
+              {/* Outer ring */}
+              <div className="absolute inset-0 rounded-full border-3 border-gray-200 dark:border-gray-700"></div>
+              {/* Spinning ring */}
+              <div className="absolute inset-0 animate-spin rounded-full border-3 border-transparent border-t-blue-600 dark:border-t-blue-400"></div>
+              {/* Inner pulsing dot */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-600 dark:bg-blue-400"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Loading Text */}
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Loading Chat
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Setting up your AI assistant...
+            </p>
           </div>
         </div>
       </div>
@@ -1184,7 +1212,7 @@ export default function ChatPage() {
 
   if (!session) {
     return (
-      <div className="gradient-bg flex h-full items-center justify-center">
+      <div className="relative z-10 flex h-full items-center justify-center">
         <div className="text-center">
           <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
             <svg
@@ -1202,7 +1230,7 @@ export default function ChatPage() {
             </svg>
           </div>
           <h1 className="text-refined mb-4 text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Welcome to AI Calendar Assistant
+            Welcome to Calendara
           </h1>
           <p className="text-refined mb-8 text-lg text-gray-600 dark:text-gray-400">
             Please sign in to start managing your calendar with AI
@@ -1232,7 +1260,10 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="gradient-bg flex min-h-full flex-col lg:h-full lg:flex-row">
+    <div
+      className="relative z-10 flex min-h-full flex-col lg:h-full lg:flex-row"
+      style={{ background: "transparent" }}
+    >
       {/* Toast Notification */}
       {toastMessage && (
         <div className="animate-in slide-in-from-right-5 fixed top-4 right-4 z-50 duration-300">
@@ -1250,7 +1281,7 @@ export default function ChatPage() {
         </div>
       )}
       {/* Left Sidebar - Threads */}
-      <div className="gradient-sidebar flex w-full flex-col backdrop-blur-sm lg:max-h-full lg:min-h-0 lg:w-70">
+      <div className="chat-panel-transparent flex w-full flex-col backdrop-blur-sm lg:max-h-full lg:min-h-0 lg:w-70">
         <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
           <button
             onClick={createNewThread}
@@ -1308,7 +1339,7 @@ export default function ChatPage() {
                   className={`group cursor-pointer rounded-xl p-3 transition-all duration-200 sm:p-4 ${
                     currentThreadId === thread.id
                       ? "shadow-refined border border-gray-300 bg-gradient-to-r from-gray-100 to-gray-200 dark:border-gray-600 dark:from-gray-700/10 dark:to-gray-700/50"
-                      : "hover:shadow-refined border border-transparent bg-white/60 hover:border-gray-200 hover:bg-white dark:bg-gray-700/20 dark:hover:border-gray-600 dark:hover:bg-gray-800"
+                      : "hover:shadow-refined border border-gray-200 bg-white/60 hover:border-gray-400 hover:bg-white dark:border-transparent dark:bg-gray-700/20 dark:hover:border-gray-600 dark:hover:bg-gray-800"
                   }`}
                   onClick={() => setCurrentThreadId(thread.id)}
                 >
@@ -1414,7 +1445,7 @@ export default function ChatPage() {
       {/* Main Content - Two Panes */}
       <div className="flex min-h-0 flex-1 flex-col lg:min-h-0 xl:flex-row">
         {/* Chat Pane */}
-        <div className="gradient-card flex min-h-0 w-full flex-col backdrop-blur-sm lg:h-full">
+        <div className="chat-panel-transparent relative z-10 flex min-h-0 w-full flex-col backdrop-blur-sm lg:h-full">
           {/* Model Selection Header */}
           <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
             <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
@@ -1495,7 +1526,7 @@ export default function ChatPage() {
                     </svg>
                   </div>
                   <p className="mb-2 text-xl font-semibold text-gray-700 dark:text-gray-300">
-                    Welcome to AI Calendar Assistant
+                    Welcome to Calendara
                   </p>
                   <p className="text-gray-500 dark:text-gray-400">
                     Select a chat thread or create a new one to start
@@ -1868,7 +1899,7 @@ export default function ChatPage() {
         </div>
 
         {/* Calendar Pane */}
-        <div className="gradient-card flex min-h-0 w-full flex-col backdrop-blur-sm xl:h-full xl:w-100">
+        <div className="chat-panel-transparent relative z-10 flex min-h-0 w-full flex-col backdrop-blur-sm xl:h-full xl:w-2/7 xl:min-w-2/7">
           <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
             <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
               <div className="flex items-center space-x-3">
@@ -1998,7 +2029,7 @@ export default function ChatPage() {
                           isPast
                             ? "border-gray-200/60 bg-gray-50/80 opacity-75 dark:border-gray-700/60 dark:bg-gray-700/10"
                             : isToday
-                              ? "border-gray-300/60 bg-gradient-to-r from-gray-100 to-gray-200/80 dark:border-gray-600/60 dark:from-black/10 dark:to-gray-700/50"
+                              ? "border-gray-300/60 bg-gradient-to-r from-gray-100 to-gray-200/80 dark:border-gray-600/60 dark:from-gray-700/10 dark:to-gray-700/40"
                               : "border-gray-200/60 bg-white/90 backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-700/40"
                         } ${event.isOptimistic && !event.isConfirmed ? "animate-pulse" : ""}`}
                       >

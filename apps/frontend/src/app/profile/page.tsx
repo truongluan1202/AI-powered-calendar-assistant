@@ -116,7 +116,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="gradient-bg h-full overflow-y-auto py-8">
+    <div className="relative z-20 h-full overflow-y-auto py-8">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

@@ -12,7 +12,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Always render the provider, but with a fallback theme until mounted
   return (
     <ThemeContext.Provider
-      value={{ theme: mounted ? theme : "light", toggleTheme }}
+      value={{ theme: mounted ? theme : "dark", toggleTheme }}
     >
       {children}
     </ThemeContext.Provider>
@@ -77,7 +77,7 @@ export function useTheme() {
     // Return a fallback instead of throwing an error
     console.warn("useTheme must be used within a ThemeProvider");
     return {
-      theme: "light" as Theme,
+      theme: "dark" as Theme,
       toggleTheme: () => {
         console.warn("ThemeProvider not found - toggleTheme disabled");
       },

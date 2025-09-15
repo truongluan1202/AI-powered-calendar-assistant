@@ -33,6 +33,9 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authOptions: NextAuthOptions = {
+  pages: {
+    signIn: "/signin",
+  },
   callbacks: {
     async session({ session, user }) {
       // Get the account with access token from database

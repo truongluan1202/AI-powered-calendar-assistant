@@ -117,6 +117,182 @@ body {
   color: #fafafa;
 }
 
+/* Grid pattern for background */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+.dark .grid-pattern {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Hero section grid pattern - more subtle and focused */
+.hero-grid-pattern {
+  background-image:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(59, 130, 246, 0.1) 1px,
+      transparent 1px
+    ),
+    linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+  background-size:
+    30px 30px,
+    20px 20px,
+    20px 20px;
+  background-position:
+    0 0,
+    0 0,
+    0 0;
+}
+
+.dark .hero-grid-pattern {
+  background-image:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(147, 197, 253, 0.08) 1px,
+      transparent 1px
+    ),
+    linear-gradient(rgba(147, 197, 253, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 197, 253, 0.03) 1px, transparent 1px);
+  background-size:
+    30px 30px,
+    20px 20px,
+    20px 20px;
+  background-position:
+    0 0,
+    0 0,
+    0 0;
+}
+
+/* Elegant patterns for classic design */
+.elegant-pattern-1 {
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(59, 130, 246, 0.2) 60deg,
+    transparent 120deg,
+    rgba(147, 51, 234, 0.15) 180deg,
+    transparent 240deg,
+    rgba(59, 130, 246, 0.2) 300deg,
+    transparent 360deg
+  );
+  border-radius: 50%;
+  animation: rotateSlow 20s linear infinite;
+}
+
+.elegant-pattern-2 {
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(99, 102, 241, 0.25) 0%,
+    rgba(168, 85, 247, 0.18) 30%,
+    transparent 70%
+  );
+  border-radius: 20%;
+  animation: rotateSlow 15s linear infinite reverse;
+}
+
+.elegant-pattern-3 {
+  background: linear-gradient(
+    45deg,
+    rgba(59, 130, 246, 0.18) 0%,
+    transparent 25%,
+    rgba(147, 51, 234, 0.15) 50%,
+    transparent 75%,
+    rgba(99, 102, 241, 0.18) 100%
+  );
+  border-radius: 30%;
+  animation: rotateSlow 25s linear infinite;
+}
+
+.elegant-grid {
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+    radial-gradient(
+      circle at 25% 25%,
+      rgba(147, 51, 234, 0.05) 1px,
+      transparent 1px
+    );
+  background-size:
+    60px 60px,
+    60px 60px,
+    120px 120px;
+  background-position:
+    0 0,
+    0 0,
+    0 0;
+}
+
+.dark .elegant-grid {
+  background-image:
+    linear-gradient(rgba(147, 197, 253, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 197, 253, 0.02) 1px, transparent 1px),
+    radial-gradient(
+      circle at 25% 25%,
+      rgba(196, 181, 253, 0.015) 1px,
+      transparent 1px
+    );
+  background-size:
+    60px 60px,
+    60px 60px,
+    120px 120px;
+  background-position:
+    0 0,
+    0 0,
+    0 0;
+}
+
+.elegant-mesh {
+  background:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(59, 130, 246, 0.1) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 80%,
+      rgba(147, 51, 234, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 40% 60%,
+      rgba(99, 102, 241, 0.06) 0%,
+      transparent 50%
+    );
+  background-size:
+    200px 200px,
+    300px 300px,
+    150px 150px;
+  background-position:
+    0 0,
+    100px 100px,
+    50px 50px;
+}
+
+/* Background effect shapes - theme specific opacity */
+.bg-shape-light {
+  opacity: 0.15;
+}
+
+.bg-shape-dark {
+  opacity: 0.25;
+}
+
+.dark .bg-shape-light {
+  opacity: 0.08;
+}
+
+.dark .bg-shape-dark {
+  opacity: 0.12;
+}
+
 /* Dark mode transitions */
 * {
   transition-property:
@@ -140,13 +316,78 @@ body {
 }
 
 .gradient-card {
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-  border: 1px solid #e5e5e5;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(250, 250, 250, 0.8) 100%
+  );
+  border: 1px solid rgba(229, 229, 229, 0.6);
+  backdrop-filter: blur(8px);
 }
 
 .dark .gradient-card {
-  background: linear-gradient(135deg, #161616 0%, #1f1f1f 100%);
-  border: 1px solid #2a2a2a;
+  background: linear-gradient(
+    135deg,
+    rgba(22, 22, 22, 0.8) 0%,
+    rgba(31, 31, 31, 0.8) 100%
+  );
+  border: 1px solid rgba(42, 42, 42, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+/* Extra transparent chat panels to show background effects */
+.chat-panel-transparent {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(250, 250, 250, 0.2) 100%
+  );
+  border: 1px solid rgba(229, 229, 229, 0.2);
+  backdrop-filter: blur(80px);
+}
+
+.dark .chat-panel-transparent {
+  background: linear-gradient(
+    135deg,
+    rgba(22, 22, 22, 0.2) 0%,
+    rgba(31, 31, 31, 0.2) 100%
+  );
+  border: 1px solid rgba(42, 42, 42, 0.2);
+  backdrop-filter: blur(80px);
+}
+
+/* Transparent hero section to show background effects */
+.hero-transparent {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(250, 250, 250, 0.25) 100%
+  );
+  border: 1px solid rgba(229, 229, 229, 0.25);
+  backdrop-filter: blur(12px);
+}
+
+.dark .hero-transparent {
+  background: linear-gradient(
+    135deg,
+    rgba(22, 22, 22, 0.25) 0%,
+    rgba(31, 31, 31, 0.25) 100%
+  );
+  border: 1px solid rgba(42, 42, 42, 0.25);
+  backdrop-filter: blur(12px);
+}
+
+/* Typing animation */
+.typing-animation {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid currentColor;
+  animation:
+    typing 5s steps(40, end),
+    blink 1s infinite;
+  animation-delay: 2s;
+  animation-fill-mode: both;
+  animation-iteration-count: infinite;
 }
 
 .gradient-sidebar {
@@ -281,6 +522,166 @@ body {
   }
 }
 
+@keyframes floatSlow {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(5deg);
+  }
+}
+
+@keyframes floatReverse {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(8px) rotate(-3deg);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0;
+  }
+}
+
+@keyframes rotateSlow {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Elegant animations for classic design */
+@keyframes gentleFloat {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  33% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  66% {
+    transform: translateY(10px) translateX(-5px);
+  }
+}
+
+@keyframes gentleFloatReverse {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  33% {
+    transform: translateY(15px) translateX(-8px);
+  }
+  66% {
+    transform: translateY(-8px) translateX(12px);
+  }
+}
+
+@keyframes gentleDrift {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-15px) translateX(8px) scale(1.05);
+  }
+}
+
+@keyframes elegantPulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+@keyframes elegantFloat {
+  0%,
+  100% {
+    transform: translateY(0px);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-12px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes elegantFloatReverse {
+  0%,
+  100% {
+    transform: translateY(0px);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(8px);
+    opacity: 0.7;
+  }
+}
+
+@keyframes elegantDrift {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-6px) translateX(4px);
+    opacity: 0.6;
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes typing {
+  0% {
+    width: 0;
+  }
+  60% {
+    width: 60%;
+  }
+  100% {
+    width: 60%;
+  }
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    border-color: transparent;
+  }
+  51%,
+  100% {
+    border-color: currentColor;
+  }
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -317,6 +718,55 @@ body {
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: floatReverse 2.5s ease-in-out infinite;
+}
+
+.animate-ripple {
+  animation: ripple 3s ease-out infinite;
+}
+
+.animate-rotate-slow {
+  animation: rotateSlow 20s linear infinite;
+}
+
+/* Elegant animation classes */
+.animate-gentle-float {
+  animation: gentleFloat 8s ease-in-out infinite;
+}
+
+.animate-gentle-float-reverse {
+  animation: gentleFloatReverse 10s ease-in-out infinite;
+}
+
+.animate-gentle-drift {
+  animation: gentleDrift 12s ease-in-out infinite;
+}
+
+.animate-elegant-pulse {
+  animation: elegantPulse 4s ease-in-out infinite;
+}
+
+.animate-elegant-float {
+  animation: elegantFloat 6s ease-in-out infinite;
+}
+
+.animate-elegant-float-reverse {
+  animation: elegantFloatReverse 7s ease-in-out infinite;
+}
+
+.animate-elegant-drift {
+  animation: elegantDrift 9s ease-in-out infinite;
+}
+
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
 }
 
 .animate-shimmer {
@@ -417,13 +867,23 @@ body {
   }
 
   .gradient-card {
-    background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-    border: 1px solid #e5e5e5;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(250, 250, 250, 0.8) 100%
+    );
+    border: 1px solid rgba(229, 229, 229, 0.6);
+    backdrop-filter: blur(8px);
   }
 
   .dark .gradient-card {
-    background: linear-gradient(135deg, #161616 0%, #1f1f1f 100%);
-    border: 1px solid #2a2a2a;
+    background: linear-gradient(
+      135deg,
+      rgba(22, 22, 22, 0.8) 0%,
+      rgba(31, 31, 31, 0.8) 100%
+    );
+    border: 1px solid rgba(42, 42, 42, 0.6);
+    backdrop-filter: blur(8px);
   }
 
   .gradient-sidebar {
@@ -497,13 +957,18 @@ body {
 
 @media (min-width: 1024px) {
   .mobile-scrollable {
-    max-height: calc(100vh - 16rem);
+    max-height: calc(100vh);
     overflow-y: auto;
   }
 
   .mobile-chat-messages {
     min-height: 0;
-    max-height: calc(100vh - 16rem);
+    max-height: calc(100vh - 8rem);
     overflow-y: auto;
   }
+}
+
+/* Radial gradient utility */
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-stops));
 }

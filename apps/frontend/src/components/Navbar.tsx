@@ -24,12 +24,16 @@ export default function Navbar() {
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-r from-gray-700 to-gray-800 transition-all duration-200 group-hover:from-gray-600 group-hover:to-gray-700 sm:h-9 sm:w-9 dark:from-gray-300 dark:to-gray-400 dark:group-hover:from-gray-200 dark:group-hover:to-gray-300">
                 <span className="text-xs font-bold text-white sm:text-sm dark:text-white">
-                  AI
+                  Cal
                 </span>
               </div>
-              <span className="text-refined text-lg font-semibold text-gray-900 transition-colors group-hover:text-gray-600 sm:text-xl dark:text-gray-100 dark:group-hover:text-gray-300">
-                <span className="hidden sm:inline">Calendar Assistant</span>
-                <span className="sm:hidden">CA</span>
+              <span className="text-refined text-lg font-semibold transition-colors sm:text-xl">
+                <span className="hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent sm:inline dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400">
+                  Calendara
+                </span>
+                <span className="text-gray-900 sm:hidden dark:text-gray-100">
+                  Cal
+                </span>
               </span>
             </Link>
           </div>
