@@ -41,12 +41,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         document.documentElement.classList.add("light");
       }
 
-      // Update debug element
-      const debugElement = document.getElementById("theme-debug");
-      if (debugElement) {
-        debugElement.textContent = theme;
-      }
-
       // Save to localStorage only when mounted
       if (mounted) {
         localStorage.setItem("theme", theme);

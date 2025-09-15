@@ -54,12 +54,6 @@ export default function RootLayout({
               <main className="relative z-10 h-[calc(100vh-4rem)] overflow-auto lg:overflow-hidden">
                 {children}
               </main>
-              {/* Debug element to test dark mode */}
-              <div className="fixed right-4 bottom-4 rounded-lg bg-white p-2 shadow-lg dark:bg-gray-800">
-                <div className="text-xs text-gray-600 dark:text-gray-300">
-                  Theme: <span id="theme-debug">loading...</span>
-                </div>
-              </div>
             </TRPCReactProvider>
           </SessionProvider>
         </ThemeProvider>
