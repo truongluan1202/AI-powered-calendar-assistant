@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from enum import Enum
 
-import httpx
 from openai import AsyncOpenAI
 import anthropic
 import google.genai as genai

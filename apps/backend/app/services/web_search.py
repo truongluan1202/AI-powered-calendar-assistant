@@ -1,7 +1,7 @@
 """Web search service using SerpAPI."""
 
 import asyncio
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from serpapi import GoogleSearch
 from app.core.config import settings
 

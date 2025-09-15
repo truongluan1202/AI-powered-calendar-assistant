@@ -3,3 +3,4 @@
 from app.main import app
 
 # This allows running the app with: uvicorn main:app --reload
+__all__ = ["app"]

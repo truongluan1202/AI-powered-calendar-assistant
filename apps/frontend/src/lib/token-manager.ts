@@ -72,7 +72,6 @@ export async function refreshGoogleToken(
 
 /**
  * Gets a valid access token for a user, refreshing if necessary
- * This is the main function that implements the "refresh on demand" strategy
  */
 export async function getValidAccessToken(userId: string): Promise<{
   success: boolean;
