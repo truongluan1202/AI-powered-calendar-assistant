@@ -1,55 +1,65 @@
-## Dev quickstart
+# Calendara
 
-Backend (FastAPI):
+An intelligent calendar assistant that helps you manage your time more effectively.
 
-1. In another terminal:
-   - `cd apps/backend`
-   - `uvicorn main:app --reload --port 8000`
+## What Calendara Does
 
-Frontend (Next.js):
+- **Smart Scheduling**: Get AI-powered suggestions for meeting times and calendar management
+- **Natural Language**: Chat with your calendar using everyday language
+- **Google Integration**: Seamlessly connect with your Google Calendar
+- **Intelligent Insights**: Get helpful recommendations about your schedule
 
-1. `cd apps/frontend`
-2. Create `.env.local` with:
-   - `NEXT_PUBLIC_BACKEND_URL=http://localhost:8000`
-3. `pnpm dev`
+## Getting Started
 
-Open http://localhost:3000 to test health, echo, and AI suggest calls.
+1. **Install dependencies**:
 
-Chat page: open http://localhost:3000/chat to use the conversational UI and select model.
+   ```bash
+   pnpm install
+   ```
 
-Auth env:
+2. **Set up environment variables**:
+   Create a `.env.local` file with:
 
-- `GOOGLE_CLIENT_ID=...`
-- `GOOGLE_CLIENT_SECRET=...`
-- `NEXTAUTH_URL=http://localhost:3000`
-- `NEXTAUTH_SECRET=your_long_random_string`
+   ```
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+   NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=your_secret_key
+   DATABASE_URL=your_database_url
+   ```
 
-# Create T3 App
+3. **Set up the database**:
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+   ```bash
+   pnpm db:push
+   ```
 
-## What's next? How do I make an app with this?
+4. **Start the development server**:
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+   ```bash
+   pnpm dev
+   ```
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+5. **Open your browser**:
+   Navigate to `http://localhost:3000`
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+## Features
 
-## Learn More
+- **AI-Powered Chat**: Have natural conversations about your calendar
+- **Smart Meeting Scheduling**: Let AI find the best times for your meetings
+- **Calendar Insights**: Get intelligent analysis of your schedule
+- **Secure Authentication**: Safe and secure Google account integration
+- **Real-time Updates**: Your calendar stays synchronized automatically
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+## How to Use
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+1. **Sign in** with your Google account
+2. **Start chatting** with the AI assistant
+3. **Ask questions** like:
+   - "Schedule a meeting with John tomorrow at 2 PM"
+   - "What does my week look like?"
+   - "Find time for a 1-hour focus session"
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+## Support
 
-## How do I deploy this?
-
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+For questions or support, please contact our team.
