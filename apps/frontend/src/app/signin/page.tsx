@@ -11,11 +11,15 @@ export default function SignInPage() {
 
   useEffect(() => {
     // Check if user is already signed in
-    getSession().then((session) => {
-      if (session) {
-        router.push("/chat");
-      }
-    });
+    getSession()
+      .then((session) => {
+        if (session) {
+          router.push("/chat");
+        }
+      })
+      .catch((error) => {
+        console.error("Error checking session:", error);
+      });
   }, [router]);
 
   const handleGoogleSignIn = async () => {
