@@ -1,89 +1,54 @@
-## Backend Environment
+# Calendara Backend
 
-Create `.env` in `apps/backend` or set environment variables:
+The backend service that powers Calendara's AI capabilities.
 
-```
-# LLM Provider API Keys (optional - only set the ones you want to use)
-OPENAI_API_KEY=your_openai_api_key_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-GEMINI_API_KEY=your_gemini_api_key_here
-```
+## What It Does
 
-## Project Structure
+- **AI Processing**: Handles all AI requests and responses
+- **Calendar Integration**: Manages Google Calendar API interactions
+- **Web Search**: Provides real-time information when needed
+- **Tool Execution**: Runs calendar management tools and actions
 
-The backend follows a stateless architecture pattern:
+## Getting Started
 
-```
-app/
-├── core/           # Core configuration
-├── schemas/        # Pydantic request/response models
-├── services/       # Business logic (LLM providers)
-├── api/           # API routes and endpoints
-└── main.py        # FastAPI application
-```
+1. **Install dependencies**:
 
-## Architecture
+   ```bash
+   uv sync
+   ```
 
-The backend is now **stateless** and does not maintain its own database. All data persistence is handled by the frontend's Prisma database. The backend focuses solely on:
+2. **Set up environment variables**:
+   Create a `.env` file with:
 
-- **LLM Integration**: Routing requests to different AI providers
-- **API Services**: Providing stateless endpoints for the frontend
-- **Configuration**: Managing API keys and settings
+   ```
+   GEMINI_API_KEY=your_gemini_api_key
+   OPENAI_API_KEY=your_openai_api_key
+   ANTHROPIC_API_KEY=your_anthropic_api_key
+   ```
 
-## LLM Integration
+3. **Start the server**:
+   ```bash
+   uv run uvicorn main:app --reload --port 8000
+   ```
 
-The backend supports multiple LLM providers:
+## Features
 
-- **OpenAI**: GPT-4, GPT-3.5-turbo, GPT-4-turbo
-- **Anthropic**: Claude-3 Sonnet, Haiku, Opus
-- **Gemini**: Gemini 2.5 Flash Lite, Gemini 2.0 Flash Lite, Gemini 2.5 Flash, Gemini 2.0 Flash
-
-The system automatically detects available providers based on API keys and routes chat requests accordingly.
-
-### Run Development Server
-
-```bash
-uv run uvicorn main:app --reload --port 8000
-```
+- **Multi-Provider AI**: Supports multiple AI providers for reliable responses
+- **Calendar Tools**: Built-in tools for scheduling and calendar management
+- **Web Search**: Real-time information gathering capabilities
+- **Secure API**: Safe and secure API endpoints for the frontend
 
 ## API Endpoints
 
-### Common Endpoints
+- **Health Check**: Monitor service status
+- **AI Chat**: Process conversational requests
+- **Calendar Tools**: Execute calendar management actions
+- **Web Search**: Search for real-time information
 
-- `GET /api/v1/health` - Health check
-- `POST /api/v1/echo` - Echo endpoint
-- `POST /api/v1/ai/suggest` - AI suggestion endpoint
+## Configuration
 
-### Chat Endpoints
+The backend automatically detects available AI providers based on your API keys and routes requests accordingly.
 
-- `GET /api/v1/chat/providers` - Get available LLM providers
-- `POST /api/v1/chat/generate` - Generate LLM response (stateless)
+## Support
 
-### Example Usage
-
-```bash
-# Check available LLM providers
-curl http://localhost:8000/api/v1/chat/providers
-
-# Generate LLM response
-curl -X POST http://localhost:8000/api/v1/chat/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "user", "content": "Hello! Can you help me schedule a meeting?"}
-    ],
-    "model_provider": "openai",
-    "model_name": "gpt-4"
-  }'
-
-# Or with Gemini
-curl -X POST http://localhost:8000/api/v1/chat/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "user", "content": "What is the weather like today?"}
-    ],
-    "model_provider": "gemini",
-    "model_name": "gemini-2.5-flash-lite"
-  }'
-```
+For technical questions or issues, please contact our development team.
