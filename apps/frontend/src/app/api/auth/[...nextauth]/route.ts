@@ -3,6 +3,5 @@ import type { NextAuthOptions } from "next-auth";
 
 import { authOptions } from "~/server/auth";
 
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-const handler = NextAuth(authOptions as NextAuthOptions);
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
