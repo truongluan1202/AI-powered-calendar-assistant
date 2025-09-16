@@ -208,6 +208,28 @@ export const useAIResponse = ({
         }
       }
 
+      // Handle empty response
+      if (!data.content || !data.content.trim()) {
+        setOptimisticMessages((prev) =>
+          prev.map((msg) =>
+            msg.role === "assistant" && msg.isOptimistic
+              ? {
+                  ...msg,
+                  content:
+                    "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!",
+                  isLoading: false,
+                }
+              : msg,
+          ),
+        );
+
+        void refetchMessages().then(() => {
+          setOptimisticMessages([]);
+          setTimeout(() => focusInput(), 100);
+        });
+        return;
+      }
+
       // Handle final response streaming AFTER tool call handling
       if (data.content?.trim()) {
         if (data.toolCalls && data.toolCalls.length > 0) {

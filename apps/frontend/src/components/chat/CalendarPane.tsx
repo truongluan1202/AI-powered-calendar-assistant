@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { Event } from "~/types/chat";
+import EventEditModal from "./EventEditModal";
 
 interface CalendarPaneProps {
   events: Event[];
@@ -6,6 +8,8 @@ interface CalendarPaneProps {
   eventsLoading: boolean;
   eventsError: string | null;
   fetchEvents: () => void;
+  updateEvent: (eventId: string, eventData: any) => Promise<void>;
+  deleteEvent: (eventId: string) => Promise<void>;
 }
 
 export default function CalendarPane({
@@ -14,7 +18,46 @@ export default function CalendarPane({
   eventsLoading,
   eventsError,
   fetchEvents,
+  updateEvent,
+  deleteEvent,
 }: CalendarPaneProps) {
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingEvent(null);
+    setIsUpdating(false);
+  };
+
+  const handleSaveEvent = async (updatedEvent: Partial<Event>) => {
+    if (!editingEvent?.id) return;
+
+    setIsUpdating(true);
+    try {
+      await updateEvent(editingEvent.id, updatedEvent);
+      handleCloseModal();
+    } catch (error) {
+      console.error("Failed to update event:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      await deleteEvent(eventId);
+      handleCloseModal();
+    } catch (error) {
+      console.error("Failed to delete event:", error);
+    }
+  };
   return (
     <div className="chat-panel-transparent relative z-10 flex min-h-0 w-full flex-col backdrop-blur-sm xl:h-full xl:w-2/7 xl:min-w-2/7">
       <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
@@ -191,21 +234,69 @@ export default function CalendarPane({
                           )}
                         </div>
                         <div className="flex flex-col items-end space-y-1">
-                          {isToday && (
-                            <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
-                              Today
-                            </span>
-                          )}
-                          {isPast && (
-                            <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
-                              Past
-                            </span>
-                          )}
-                          {event.isOptimistic && !event.isConfirmed && (
-                            <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
-                              Creating...
-                            </span>
-                          )}
+                          <div className="flex space-x-1">
+                            {event.id && !event.isOptimistic && (
+                              <>
+                                <button
+                                  onClick={() => handleEditEvent(event)}
+                                  disabled={eventsLoading}
+                                  className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                                  title="Edit event"
+                                >
+                                  <svg
+                                    className="h-4 w-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                    />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteEvent(event.id!)}
+                                  disabled={eventsLoading}
+                                  className="rounded-lg p-1 text-gray-400 hover:bg-red-100 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                                  title="Delete event"
+                                >
+                                  <svg
+                                    className="h-4 w-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex flex-col space-y-1">
+                            {isToday && (
+                              <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
+                                Today
+                              </span>
+                            )}
+                            {isPast && (
+                              <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
+                                Past
+                              </span>
+                            )}
+                            {event.isOptimistic && !event.isConfirmed && (
+                              <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
+                                Creating...
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -215,6 +306,16 @@ export default function CalendarPane({
           </div>
         )}
       </div>
+
+      {/* Event Edit Modal */}
+      <EventEditModal
+        event={editingEvent}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveEvent}
+        onDelete={handleDeleteEvent}
+        isLoading={isUpdating}
+      />
     </div>
   );
 }

@@ -259,6 +259,10 @@ export class ToolExecutor {
           return await this.createEvent(args);
         case "handleEventConfirmation":
           return await this.handleEventConfirmation(args);
+        case "updateEvent":
+          return await this.updateEvent(args);
+        case "deleteEvent":
+          return await this.deleteEvent(args);
         case "webSearch":
           // Web search is now handled by the backend directly
           return {
@@ -437,6 +441,168 @@ export class ToolExecutor {
         success: false,
         error:
           error instanceof Error ? error.message : "Failed to create event",
+      };
+    }
+  }
+
+  private async updateEvent(args: any): Promise<ToolResult> {
+    try {
+      const {
+        eventId,
+        calendarId,
+        summary,
+        description,
+        start,
+        end,
+        location,
+        attendees,
+      } = args;
+
+      if (!eventId) {
+        return {
+          tool_call_id: "",
+          content: "Event ID is required for updating",
+          success: false,
+          error: "Missing eventId for update",
+        };
+      }
+
+      const calId = calendarId || "primary";
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(eventId)}`;
+
+      // Handle start and end times - they should be objects with dateTime and timeZone
+      let startTime, endTime;
+
+      if (start?.dateTime) {
+        startTime = start.dateTime;
+      } else if (typeof start === "string") {
+        startTime = this.convertTimeReference(start);
+      } else {
+        throw new Error("Invalid start time format");
+      }
+
+      if (end?.dateTime) {
+        endTime = end.dateTime;
+      } else if (typeof end === "string") {
+        endTime = this.convertTimeReference(end);
+      } else {
+        throw new Error("Invalid end time format");
+      }
+
+      // Always use Australian timezone for debugging
+      const userTimezone = "Australia/Sydney";
+
+      const eventData: any = {};
+      if (summary) eventData.summary = summary;
+      if (description !== undefined) eventData.description = description;
+      if (location !== undefined) eventData.location = location;
+      if (attendees !== undefined) eventData.attendees = attendees;
+
+      if (startTime) {
+        eventData.start = {
+          dateTime: startTime,
+          timeZone: start?.timeZone || userTimezone,
+        };
+      }
+
+      if (endTime) {
+        eventData.end = {
+          dateTime: endTime,
+          timeZone: end?.timeZone || userTimezone,
+        };
+      }
+
+      const response = await makeGoogleApiCall(
+        url,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(eventData),
+        },
+        this.userId,
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error");
+        throw new Error(
+          `Google Calendar API error: ${response.status} ${response.statusText} - ${errorText}`,
+        );
+      }
+
+      const event = await response.json();
+
+      return {
+        tool_call_id: "",
+        content: JSON.stringify({
+          id: event.id,
+          summary: event.summary,
+          start: event.start?.dateTime || event.start?.date,
+          end: event.end?.dateTime || event.end?.date,
+          location: event.location,
+          htmlLink: event.htmlLink,
+        }),
+        success: true,
+      };
+    } catch (error) {
+      return {
+        tool_call_id: "",
+        content: "",
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to update event",
+      };
+    }
+  }
+
+  private async deleteEvent(args: any): Promise<ToolResult> {
+    try {
+      const { eventId, calendarId } = args;
+
+      if (!eventId) {
+        return {
+          tool_call_id: "",
+          content: "Event ID is required for deletion",
+          success: false,
+          error: "Missing eventId for deletion",
+        };
+      }
+
+      const calId = calendarId || "primary";
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(eventId)}`;
+
+      const response = await makeGoogleApiCall(
+        url,
+        {
+          method: "DELETE",
+          headers: {},
+        },
+        this.userId,
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error");
+        throw new Error(
+          `Google Calendar API error: ${response.status} ${response.statusText} - ${errorText}`,
+        );
+      }
+
+      return {
+        tool_call_id: "",
+        content: JSON.stringify({
+          id: eventId,
+          deleted: true,
+        }),
+        success: true,
+      };
+    } catch (error) {
+      return {
+        tool_call_id: "",
+        content: "",
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to delete event",
       };
     }
   }

@@ -4,17 +4,23 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "~/contexts/ThemeContext";
+import { useEffect, useState } from "react";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const isActive = (path: string) => pathname === path;
 
   return (
     <nav className="gradient-card shadow-refined border-b border-gray-200/60 backdrop-blur-sm">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo and Brand */}
           <div className="flex items-center">
@@ -38,66 +44,52 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Navigation Links */}
-          <div className="hidden items-center space-x-8 md:flex">
-            {session && (
-              <Link
-                href="/chat"
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                  isActive("/chat")
-                    ? "shadow-refined bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 dark:from-gray-800 dark:to-gray-700 dark:text-gray-300"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
-                }`}
-              >
-                Chat
-              </Link>
-            )}
-          </div>
-
           {/* User Menu */}
           <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Theme Toggle */}
-            <button
-              onClick={() => {
-                console.log(
-                  "Theme toggle button clicked, current theme:",
-                  theme,
-                );
-                toggleTheme();
-              }}
-              className="rounded-lg p-2 text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
-              title={`Current theme: ${theme}`}
-            >
-              {theme === "light" ? (
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                  />
-                </svg>
-              )}
-            </button>
+            {/* Theme Toggle - Only render after hydration */}
+            {isMounted && (
+              <button
+                onClick={() => {
+                  console.log(
+                    "Theme toggle button clicked, current theme:",
+                    theme,
+                  );
+                  toggleTheme();
+                }}
+                className="rounded-lg p-2 text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                title={`Current theme: ${theme}`}
+              >
+                {theme === "light" ? (
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                )}
+              </button>
+            )}
 
             {status === "loading" ? (
               <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700"></div>
@@ -165,24 +157,6 @@ export default function Navbar() {
             )}
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {session && (
-          <div className="border-t border-gray-200/60 py-3 md:hidden dark:border-gray-700/60">
-            <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
-              <Link
-                href="/chat"
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                  isActive("/chat")
-                    ? "shadow-refined bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 dark:from-gray-800 dark:to-gray-700 dark:text-gray-300"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
-                }`}
-              >
-                Chat
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   );

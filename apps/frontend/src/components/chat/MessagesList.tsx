@@ -19,10 +19,13 @@ interface MessagesListProps {
     isPending: boolean;
   };
   handleConfirmation: (
-    action: "confirm" | "cancel",
+    action: "confirm" | "cancel" | "edit",
     messageId: string,
     eventDetails?: any,
   ) => void;
+  editedEventDetails?: any;
+  formatEventDetailsToMessage?: (eventDetails: any) => string;
+  formatAIConfirmationMessage?: (content: string) => string;
 }
 
 const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
@@ -36,6 +39,9 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
       generateAIResponseMutation,
       addMessageMutation,
       handleConfirmation,
+      editedEventDetails,
+      formatEventDetailsToMessage,
+      formatAIConfirmationMessage,
     },
     ref,
   ) => {
@@ -107,7 +113,13 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                     <div
                       className="overflow-wrap-anywhere break-words text-gray-700 dark:text-gray-300"
                       dangerouslySetInnerHTML={{
-                        __html: renderMarkdown(message.content),
+                        __html: renderMarkdown(
+                          editedEventDetails && formatEventDetailsToMessage
+                            ? formatEventDetailsToMessage(editedEventDetails)
+                            : formatAIConfirmationMessage
+                              ? formatAIConfirmationMessage(message.content)
+                              : message.content,
+                        ),
                       }}
                     />
                   )}
@@ -120,7 +132,16 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                       : "text-gray-900 dark:text-gray-100"
                   }`}
                   dangerouslySetInnerHTML={{
-                    __html: renderMarkdown(message.content),
+                    __html: renderMarkdown(
+                      editedEventDetails &&
+                        formatEventDetailsToMessage &&
+                        isConfirmationMessage(message.content)
+                        ? formatEventDetailsToMessage(editedEventDetails)
+                        : formatAIConfirmationMessage &&
+                            isConfirmationMessage(message.content)
+                          ? formatAIConfirmationMessage(message.content)
+                          : message.content,
+                    ),
                   }}
                 />
               )}
@@ -159,6 +180,35 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                         />
                       </svg>
                       <span>Confirm</span>
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleConfirmation(
+                          "edit",
+                          message.clientKey || message.id,
+                        )
+                      }
+                      disabled={
+                        isSendingRef.current ||
+                        generateAIResponseMutation.isPending ||
+                        addMessageMutation.isPending
+                      }
+                      className="flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-100 active:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto dark:border-gray-700 dark:bg-gray-800/20 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800/30 dark:active:bg-gray-800/40"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      <span>Edit</span>
                     </button>
                     <button
                       onClick={() =>

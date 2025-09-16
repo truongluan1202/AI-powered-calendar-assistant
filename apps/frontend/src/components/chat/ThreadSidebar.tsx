@@ -163,7 +163,7 @@ export default function ThreadSidebar({
                           e.stopPropagation();
                           deleteThread(thread.id);
                         }}
-                        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                       >
                         <svg
                           className="h-3.5 w-3.5"

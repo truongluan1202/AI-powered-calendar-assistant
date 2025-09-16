@@ -164,6 +164,101 @@ CALENDAR_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "updateEvent",
+            "description": "Update an existing calendar event. Use this when the user wants to modify details of an existing event like changing the time, title, description, or location.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "eventId": {
+                        "type": "string",
+                        "description": "The ID of the event to update",
+                    },
+                    "calendarId": {
+                        "type": "string",
+                        "description": "Calendar identifier. Default is 'primary'",
+                        "default": "primary",
+                    },
+                    "summary": {
+                        "type": "string",
+                        "description": "Updated title of the event",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Updated description of the event",
+                    },
+                    "start": {
+                        "type": "object",
+                        "properties": {
+                            "dateTime": {
+                                "type": "string",
+                                "description": "Updated event start time in RFC3339 format",
+                            },
+                            "timeZone": {
+                                "type": "string",
+                                "description": "Time zone of the event",
+                            },
+                        },
+                    },
+                    "end": {
+                        "type": "object",
+                        "properties": {
+                            "dateTime": {
+                                "type": "string",
+                                "description": "Updated event end time in RFC3339 format",
+                            },
+                            "timeZone": {
+                                "type": "string",
+                                "description": "Time zone of the event",
+                            },
+                        },
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Updated location of the event",
+                    },
+                    "attendees": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "email": {
+                                    "type": "string",
+                                    "description": "Email address of the attendee",
+                                },
+                            },
+                        },
+                        "description": "Updated list of attendees",
+                    },
+                },
+                "required": ["eventId"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "deleteEvent",
+            "description": "Delete an existing calendar event. Use this when the user wants to remove an event from their calendar.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "eventId": {
+                        "type": "string",
+                        "description": "The ID of the event to delete",
+                    },
+                    "calendarId": {
+                        "type": "string",
+                        "description": "Calendar identifier. Default is 'primary'",
+                        "default": "primary",
+                    },
+                },
+                "required": ["eventId"],
+            },
+        },
+    },
 ]
 
 

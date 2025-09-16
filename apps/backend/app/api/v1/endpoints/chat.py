@@ -129,8 +129,15 @@ async def generate_llm_response(request: GenerateRequest):
                     tools=tools,
                 )
 
+                # Ensure we never return empty content
+                content = (
+                    final_response.content.strip() if final_response.content else ""
+                )
+                if not content:
+                    content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
+
                 return GenerateResponse(
-                    content=final_response.content,
+                    content=content,
                     provider=final_response.provider,
                     model=final_response.model,
                     usage=final_response.usage,
@@ -138,16 +145,26 @@ async def generate_llm_response(request: GenerateRequest):
                 )
             else:
                 # Only non-webSearch tool calls, return them for frontend handling
+                # Ensure we never return empty content
+                content = llm_response.content.strip() if llm_response.content else ""
+                if not content:
+                    content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
+
                 return GenerateResponse(
-                    content=llm_response.content,
+                    content=content,
                     provider=llm_response.provider,
                     model=llm_response.model,
                     usage=llm_response.usage,
                     tool_calls=other_calls,
                 )
 
+        # Ensure we never return empty content
+        content = llm_response.content.strip() if llm_response.content else ""
+        if not content:
+            content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
+
         return GenerateResponse(
-            content=llm_response.content,
+            content=content,
             provider=llm_response.provider,
             model=llm_response.model,
             usage=llm_response.usage,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useChat } from "~/hooks/useChat";
 import { useAIResponse } from "~/hooks/useAIResponse";
@@ -10,6 +10,7 @@ import ThreadSidebar from "~/components/chat/ThreadSidebar";
 import CalendarPane from "~/components/chat/CalendarPane";
 import MessagesList from "~/components/chat/MessagesList";
 import ChatInput from "~/components/chat/ChatInput";
+import EventConfirmationModal from "~/components/chat/EventConfirmationModal";
 import type { GeminiModel } from "~/types/chat";
 
 export default function ChatPage() {
@@ -70,6 +71,219 @@ export default function ChatPage() {
     updateThreadModelMutation,
   } = chatState;
 
+  // State for event confirmation modal
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [pendingEventDetails, setPendingEventDetails] = useState<any>(null);
+  const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
+  const [editedEventDetails, setEditedEventDetails] = useState<any>(null);
+
+  // Parse event details from confirmation message
+  const parseEventDetailsFromMessage = (content: string) => {
+    const lines = content.split("\n");
+    const eventDetails: any = {};
+
+    for (const line of lines) {
+      if (line.includes("**Title:**")) {
+        eventDetails.summary = line.replace("**Title:**", "").trim();
+      } else if (line.includes("**Date & Time:**")) {
+        const dateTimeText = line.replace("**Date & Time:**", "").trim();
+        // Parse the date/time format - handle various formats
+        const [startTime, endTime] = dateTimeText.split(" - ");
+        if (startTime && endTime) {
+          try {
+            // Try to parse the dates - handle different formats
+            // This could be either ISO format or local time format
+            const startDate = new Date(startTime.trim());
+            const endDate = new Date(endTime.trim());
+
+            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+              // Always convert to ISO format for backend
+              eventDetails.start = {
+                dateTime: startDate.toISOString(),
+                timeZone: "Australia/Sydney",
+              };
+              eventDetails.end = {
+                dateTime: endDate.toISOString(),
+                timeZone: "Australia/Sydney",
+              };
+            }
+          } catch (error) {
+            console.error("Error parsing dates:", error);
+            // Fallback to current time + 1 hour
+            const now = new Date();
+            const endTime = new Date(now.getTime() + 60 * 60 * 1000);
+            eventDetails.start = {
+              dateTime: now.toISOString(),
+              timeZone: "Australia/Sydney",
+            };
+            eventDetails.end = {
+              dateTime: endTime.toISOString(),
+              timeZone: "Australia/Sydney",
+            };
+          }
+        }
+      } else if (line.includes("**Location:**")) {
+        eventDetails.location = line.replace("**Location:**", "").trim();
+      } else if (line.includes("**Description:**")) {
+        eventDetails.description = line.replace("**Description:**", "").trim();
+      } else if (line.includes("**Attendees:**")) {
+        const attendeesText = line.replace("**Attendees:**", "").trim();
+        if (
+          attendeesText &&
+          attendeesText !== "None" &&
+          attendeesText !== "N/A"
+        ) {
+          // Parse attendees - this is a simplified parser
+          const emails = attendeesText
+            .split(",")
+            .map((email) => email.trim())
+            .filter((email) => email);
+          eventDetails.attendees = emails.map((email) => ({ email }));
+        }
+      }
+    }
+
+    return eventDetails;
+  };
+
+  // Format AI's confirmation message to display local time instead of ISO
+  const formatAIConfirmationMessage = (content: string) => {
+    // Check if this is a confirmation message with ISO dates
+    if (!content.includes("**Date & Time:**") || !content.includes("T")) {
+      return content; // Not a confirmation message or no ISO dates
+    }
+
+    // Extract the date/time line and ensure all fields are present
+    const lines = content.split("\n");
+    let hasLocation = false;
+    let hasAttendees = false;
+
+    const formattedLines = lines.map((line) => {
+      if (line.includes("**Date & Time:**")) {
+        const dateTimeText = line.replace("**Date & Time:**", "").trim();
+        const [startTime, endTime] = dateTimeText.split(" - ");
+
+        if (startTime && endTime) {
+          try {
+            // Parse ISO dates and convert to local time display
+            const startDate = new Date(startTime.trim());
+            const endDate = new Date(endTime.trim());
+
+            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+              const formatDateTime = (date: Date) => {
+                return date.toLocaleString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+              };
+
+              return `**Date & Time:** ${formatDateTime(startDate)} - ${formatDateTime(endDate)}`;
+            }
+          } catch (error) {
+            console.error("Error parsing dates in AI message:", error);
+          }
+        }
+      } else if (line.includes("**Location:**")) {
+        hasLocation = true;
+      } else if (line.includes("**Attendees:**")) {
+        hasAttendees = true;
+      }
+      return line;
+    });
+
+    // Add missing fields if they don't exist
+    const result = [...formattedLines];
+
+    // Find the position to insert missing fields (after Date & Time, before the end)
+    let insertIndex =
+      result.findIndex((line) => line.includes("**Date & Time:**")) + 1;
+
+    if (!hasLocation) {
+      result.splice(insertIndex, 0, "**Location:** None");
+      insertIndex++;
+    }
+
+    if (!hasAttendees) {
+      result.splice(insertIndex, 0, "**Attendees:** None");
+    }
+
+    return result.join("\n");
+  };
+
+  // Format event details back to confirmation message format
+  const formatEventDetailsToMessage = (eventDetails: any) => {
+    // Handle timezone properly - if we have timezone info, use it, otherwise assume local timezone
+    const startDateTime = eventDetails.start?.dateTime || eventDetails.start;
+    const endDateTime = eventDetails.end?.dateTime || eventDetails.end;
+
+    // Parse dates - these should already be in the correct timezone
+    const startDate = new Date(startDateTime);
+    const endDate = new Date(endDateTime);
+
+    const formatDateTime = (date: Date) => {
+      // Always display in local time for user readability
+      return date.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone:
+          eventDetails.start?.timeZone ||
+          Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+    };
+
+    let message = `---\n📅 **Event Details:**\n**Title:** ${eventDetails.summary || "Untitled Event"}\n**Date & Time:** ${formatDateTime(startDate)} - ${formatDateTime(endDate)}`;
+
+    // Always include location field
+    message += `\n**Location:** ${eventDetails.location || "None"}`;
+
+    if (eventDetails.description) {
+      message += `\n**Description:** ${eventDetails.description}`;
+    }
+
+    // Always include attendees field
+    if (eventDetails.attendees && eventDetails.attendees.length > 0) {
+      const attendeeEmails = eventDetails.attendees
+        .map((a: any) => a.email)
+        .join(", ");
+      message += `\n**Attendees:** ${attendeeEmails}`;
+    } else {
+      message += `\n**Attendees:** None`;
+    }
+
+    message += `\n---\nPlease confirm: Type 'confirm' to create, 'cancel' to abort, or 'modify [details]' to change something.`;
+
+    return message;
+  };
+
+  // Handle modal confirmation
+  const handleModalConfirm = (updatedEventDetails: any) => {
+    if (!pendingMessageId) return;
+
+    // Store the edited event details
+    setEditedEventDetails(updatedEventDetails);
+
+    // Close modal
+    setIsConfirmationModalOpen(false);
+    setPendingEventDetails(null);
+    setPendingMessageId(null);
+  };
+
+  // Handle modal cancel
+  const handleModalCancel = () => {
+    setIsConfirmationModalOpen(false);
+    setPendingEventDetails(null);
+    setPendingMessageId(null);
+    // Don't clear editedEventDetails on cancel - keep them for next edit
+  };
+
   // Focus the input box
   const focusInput = () => {
     if (inputRef.current) {
@@ -103,13 +317,14 @@ export default function ChatPage() {
   };
 
   // Calendar hook
-  const { fetchEvents, addOptimisticEvent } = useCalendar({
-    setEvents,
-    setOptimisticEvents,
-    setEventsLoading,
-    setEventsError,
-    setToastMessage,
-  });
+  const { fetchEvents, addOptimisticEvent, updateEvent, deleteEvent } =
+    useCalendar({
+      setEvents,
+      setOptimisticEvents,
+      setEventsLoading,
+      setEventsError,
+      setToastMessage,
+    });
 
   // AI Response hook
   const { generateAIResponseMutation } = useAIResponse({
@@ -278,7 +493,7 @@ export default function ChatPage() {
 
   // Handle confirmation button clicks
   const handleConfirmation = async (
-    action: "confirm" | "cancel",
+    action: "confirm" | "cancel" | "edit",
     messageId: string,
     eventDetails?: any,
   ) => {
@@ -295,6 +510,33 @@ export default function ChatPage() {
       return;
     }
 
+    // Handle edit action - open modal instead of sending message
+    if (action === "edit") {
+      // Use edited details if available, otherwise parse from message
+      let eventDetails;
+
+      if (editedEventDetails) {
+        // Use the previously edited details
+        eventDetails = editedEventDetails;
+      } else {
+        // Parse event details from the confirmation message
+        const message =
+          messages.find((m) => m.id === messageId) ||
+          optimisticMessages.find((m) => m.id === messageId);
+
+        if (message) {
+          eventDetails = parseEventDetailsFromMessage(message.content);
+        }
+      }
+
+      if (eventDetails) {
+        setPendingEventDetails(eventDetails);
+        setPendingMessageId(messageId);
+        setIsConfirmationModalOpen(true);
+      }
+      return;
+    }
+
     setShowConfirmationButtons((prev) => {
       const newSet = new Set(prev);
       newSet.delete(messageId);
@@ -303,7 +545,20 @@ export default function ChatPage() {
 
     isSendingRef.current = true;
 
-    const userMessage = action;
+    // Use edited event details if available, otherwise use the original action
+    let userMessage: string = action;
+    let eventDetailsToSend = eventDetails;
+
+    if (action === "confirm" && editedEventDetails) {
+      // If we have edited details, send them as a modify message
+      userMessage = `modify ${JSON.stringify(editedEventDetails)}`;
+      eventDetailsToSend = editedEventDetails;
+    }
+
+    // Clear the edited details after any action (confirm or cancel)
+    if (action === "confirm" || action === "cancel") {
+      setEditedEventDetails(null);
+    }
 
     const optimisticUserMessage = {
       id: `user-${Date.now()}`,
@@ -720,6 +975,9 @@ export default function ChatPage() {
             generateAIResponseMutation={generateAIResponseMutation}
             addMessageMutation={addMessageMutation}
             handleConfirmation={handleConfirmation}
+            editedEventDetails={editedEventDetails}
+            formatEventDetailsToMessage={formatEventDetailsToMessage}
+            formatAIConfirmationMessage={formatAIConfirmationMessage}
           />
 
           {/* Input */}
@@ -745,8 +1003,19 @@ export default function ChatPage() {
           eventsLoading={eventsLoading}
           eventsError={eventsError}
           fetchEvents={fetchEvents}
+          updateEvent={updateEvent}
+          deleteEvent={deleteEvent}
         />
       </div>
+
+      {/* Event Confirmation Modal */}
+      <EventConfirmationModal
+        isOpen={isConfirmationModalOpen}
+        onClose={handleModalCancel}
+        onConfirm={handleModalConfirm}
+        onCancel={handleModalCancel}
+        eventDetails={pendingEventDetails}
+      />
     </div>
   );
 }

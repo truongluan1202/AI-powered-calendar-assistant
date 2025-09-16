@@ -117,8 +117,150 @@ export const useCalendar = ({
     return tmpId;
   };
 
+  // Update event
+  const updateEvent = async (eventId: string, eventData: any) => {
+    if (!session?.access_token) {
+      console.error("No access token available for updating event");
+      setEventsError("No access token available");
+      return;
+    }
+
+    setEventsLoading(true);
+    setEventsError(null);
+
+    try {
+      const response = await fetch("/api/tools/execute", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          toolCalls: [
+            {
+              id: "update-event",
+              type: "function",
+              function: {
+                name: "updateEvent",
+                arguments: JSON.stringify({
+                  eventId,
+                  ...eventData,
+                }),
+              },
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to update event:", response.status, errorText);
+        setEventsError(
+          `Failed to update event: ${response.status} ${errorText}`,
+        );
+        return;
+      }
+
+      const { results } = await response.json();
+      if (results && results.length > 0) {
+        const result = results[0];
+
+        if (result.success) {
+          // Refresh events to show updated data
+          await fetchEvents();
+          showToast("✅ Event updated successfully!", setToastMessage);
+        } else {
+          console.error("Tool execution failed:", result.error);
+          setEventsError(`Tool execution failed: ${result.error}`);
+        }
+      } else {
+        console.error("No results returned from tool execution");
+        setEventsError("No results returned from tool execution");
+      }
+    } catch (error) {
+      console.error("Failed to update event:", error);
+      setEventsError(
+        `Failed to update event: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  // Delete event
+  const deleteEvent = async (eventId: string) => {
+    if (!session?.access_token) {
+      console.error("No access token available for deleting event");
+      setEventsError("No access token available");
+      return;
+    }
+
+    setEventsLoading(true);
+    setEventsError(null);
+
+    try {
+      const response = await fetch("/api/tools/execute", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          toolCalls: [
+            {
+              id: "delete-event",
+              type: "function",
+              function: {
+                name: "deleteEvent",
+                arguments: JSON.stringify({
+                  eventId,
+                }),
+              },
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to delete event:", response.status, errorText);
+        setEventsError(
+          `Failed to delete event: ${response.status} ${errorText}`,
+        );
+        return;
+      }
+
+      const { results } = await response.json();
+      if (results && results.length > 0) {
+        const result = results[0];
+
+        if (result.success) {
+          // Remove the event from the current events list
+          setEvents((prev) => prev.filter((event) => event.id !== eventId));
+          setOptimisticEvents((prev) =>
+            prev.filter((event) => event.id !== eventId),
+          );
+          showToast("🗑️ Event deleted successfully!", setToastMessage);
+        } else {
+          console.error("Tool execution failed:", result.error);
+          setEventsError(`Tool execution failed: ${result.error}`);
+        }
+      } else {
+        console.error("No results returned from tool execution");
+        setEventsError("No results returned from tool execution");
+      }
+    } catch (error) {
+      console.error("Failed to delete event:", error);
+      setEventsError(
+        `Failed to delete event: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
   return {
     fetchEvents,
     addOptimisticEvent,
+    updateEvent,
+    deleteEvent,
   };
 };
