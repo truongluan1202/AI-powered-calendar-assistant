@@ -209,7 +209,7 @@ export const useAIResponse = ({
       }
 
       // Handle empty response
-      if (!data.content || !data.content.trim()) {
+      if (!data.content?.trim()) {
         setOptimisticMessages((prev) =>
           prev.map((msg) =>
             msg.role === "assistant" && msg.isOptimistic
