@@ -30,6 +30,91 @@ def clean_confirmation_format(content: str) -> str:
     return content
 
 
+def get_context_aware_response(tool_calls):
+    """Generate context-aware responses based on tool calls to match frontend optimistic messages."""
+    print(f"🔍 DEBUG: Getting context-aware response for tool calls: {tool_calls}")
+
+    if not tool_calls:
+        print(f"🔍 DEBUG: No tool calls, using default fallback")
+        return "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
+
+    # Check for handleEventConfirmation tool calls
+    for tool_call in tool_calls:
+        if tool_call.get("function", {}).get("name") == "handleEventConfirmation":
+            try:
+                args = json.loads(tool_call.get("function", {}).get("arguments", "{}"))
+                action = args.get("action", "")
+                event_details = args.get("eventDetails", {})
+                print(f"🔍 DEBUG: Found handleEventConfirmation with action: {action}")
+
+                if action == "confirm":
+                    # Extract event title for more personalized response
+                    event_title = (
+                        event_details.get("summary", "your event")
+                        if event_details
+                        else "your event"
+                    )
+                    print(
+                        f"🔍 DEBUG: Returning personalized confirm response for: {event_title}"
+                    )
+                    return f"✅ {event_title} has been created successfully! Is there anything else I can help you with?"
+                elif action == "modify":
+                    # Extract event title for more personalized response
+                    event_title = (
+                        event_details.get("summary", "your event")
+                        if event_details
+                        else "your event"
+                    )
+                    print(
+                        f"🔍 DEBUG: Returning personalized modify response for: {event_title}"
+                    )
+                    return f"✅ {event_title} has been updated successfully! Is there anything else I can help you with?"
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"🔍 DEBUG: Error parsing handleEventConfirmation args: {e}")
+                # Fallback to generic response
+                return "✅ Event operation completed successfully! Is there anything else I can help you with?"
+
+    # Check for getEvents tool calls
+    for tool_call in tool_calls:
+        if tool_call.get("function", {}).get("name") == "getEvents":
+            print(f"🔍 DEBUG: Found getEvents, returning 'Here are your events:'")
+            return "📅 Here are your events:"
+
+    # Check for webSearch tool calls
+    for tool_call in tool_calls:
+        if tool_call.get("function", {}).get("name") == "webSearch":
+            try:
+                args = json.loads(tool_call.get("function", {}).get("arguments", "{}"))
+                query = args.get("query", "")
+                print(f"🔍 DEBUG: Found webSearch for query: {query}")
+                return f"🔍 I found information about '{query}'. Let me know if you'd like to create an event based on this!"
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"🔍 DEBUG: Error parsing webSearch args: {e}")
+                return "🔍 I found some information for you. Let me know if you'd like to create an event based on this!"
+
+    # Check for createEvent tool calls (if any)
+    for tool_call in tool_calls:
+        if tool_call.get("function", {}).get("name") == "createEvent":
+            print(f"🔍 DEBUG: Found createEvent, returning creation response")
+            return "✅ Event created successfully! Is there anything else I can help you with?"
+
+    # Check for updateEvent tool calls (if any)
+    for tool_call in tool_calls:
+        if tool_call.get("function", {}).get("name") == "updateEvent":
+            print(f"🔍 DEBUG: Found updateEvent, returning update response")
+            return "✅ Event updated successfully! Is there anything else I can help you with?"
+
+    # Check for deleteEvent tool calls (if any)
+    for tool_call in tool_calls:
+        if tool_call.get("function", {}).get("name") == "deleteEvent":
+            print(f"🔍 DEBUG: Found deleteEvent, returning deletion response")
+            return "✅ Event deleted successfully! Is there anything else I can help you with?"
+
+    # Default fallback
+    print(f"🔍 DEBUG: No matching tool calls, using default fallback")
+    return "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
+
+
 router = APIRouter()
 
 # Initialize LLM service
@@ -172,9 +257,11 @@ async def generate_llm_response(request: GenerateRequest):
                 )
                 if not content:
                     # Fallback for empty responses after tool execution
-                    print(f"🔍 DEBUG: Empty content detected, using fallback")
-                    content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
-                    print(f"🔍 DEBUG: Fallback content: '{content}'")
+                    print(
+                        f"🔍 DEBUG: Empty content detected, using context-aware fallback"
+                    )
+                    content = get_context_aware_response(llm_response.tool_calls)
+                    print(f"🔍 DEBUG: Context-aware fallback content: '{content}'")
 
                 # Clean up any remaining old confirmation format elements
                 content = clean_confirmation_format(content)
@@ -197,7 +284,7 @@ async def generate_llm_response(request: GenerateRequest):
                 # Ensure we never return empty content
                 content = llm_response.content.strip() if llm_response.content else ""
                 if not content:
-                    content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
+                    content = get_context_aware_response(llm_response.tool_calls)
 
                 # Clean up any remaining old confirmation format elements
                 content = clean_confirmation_format(content)
@@ -219,7 +306,7 @@ async def generate_llm_response(request: GenerateRequest):
         # Ensure we never return empty content
         content = llm_response.content.strip() if llm_response.content else ""
         if not content:
-            content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
+            content = get_context_aware_response(llm_response.tool_calls)
 
         # Clean up any remaining old confirmation format elements
         content = clean_confirmation_format(content)

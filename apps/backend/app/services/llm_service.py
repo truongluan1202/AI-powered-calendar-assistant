@@ -13,9 +13,8 @@ class LLMService:
     """Simplified LLM service using only Gemini provider."""
 
     def __init__(self):
-        self.provider = GeminiProvider(
-            api_key=settings.GEMINI_API_KEY, model="gemini-2.5-flash"
-        )
+        # Initialize with default model, but will be overridden per request
+        self.api_key = settings.GEMINI_API_KEY
 
     def is_provider_available(self, provider: str) -> bool:
         """Check if a provider is available."""
@@ -32,13 +31,21 @@ class LLMService:
         if not self.is_provider_available(provider):
             raise Exception(f"Provider {provider} is not available")
 
+        # Use the provided model or default to gemini-2.5-flash
+        model_to_use = model or "gemini-2.5-flash"
+
+        print(f"🔍 DEBUG: Using Gemini model: {model_to_use}")
+
+        # Create a new provider instance with the specified model
+        provider_instance = GeminiProvider(api_key=self.api_key, model=model_to_use)
+
         # Use the unified system prompt for all calendar operations
         system_prompt = get_calendar_system_prompt()
 
         # Add system message at the beginning
         messages_with_system = [LLMMessage("system", system_prompt)] + messages
 
-        return await self.provider.generate_response(messages_with_system, tools)
+        return await provider_instance.generate_response(messages_with_system, tools)
 
     async def execute_tool_call(self, tool_call: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool call and return the result."""
