@@ -190,6 +190,7 @@ export default function ChatPage() {
                   hour: "numeric",
                   minute: "2-digit",
                   hour12: true,
+                  timeZone: "Australia/Sydney", // Always display in Australia/Sydney timezone
                 });
               };
 
@@ -237,7 +238,7 @@ export default function ChatPage() {
     const endDate = new Date(endDateTime);
 
     const formatDateTime = (date: Date) => {
-      // Always display in local time for user readability
+      // Always display in Australia/Sydney timezone for consistency
       return date.toLocaleString("en-US", {
         weekday: "short",
         month: "short",
@@ -245,9 +246,7 @@ export default function ChatPage() {
         hour: "numeric",
         minute: "2-digit",
         hour12: true,
-        timeZone:
-          eventDetails.start?.timeZone ||
-          Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timeZone: "Australia/Sydney", // Always display in Australia/Sydney timezone
       });
     };
 
@@ -271,6 +270,48 @@ export default function ChatPage() {
     }
 
     return message;
+  };
+
+  // Format event details for modify messages (consistent with edit confirmations)
+  const formatEventDetailsForModify = (eventDetails: any) => {
+    const startDateTime = eventDetails.start?.dateTime || eventDetails.start;
+    const endDateTime = eventDetails.end?.dateTime || eventDetails.end;
+
+    const startDate = new Date(startDateTime);
+    const endDate = new Date(endDateTime);
+
+    const formatDateTime = (date: Date) => {
+      return date.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Australia/Sydney",
+      });
+    };
+
+    const details = [];
+    if (eventDetails.summary)
+      details.push(`**Title:** ${eventDetails.summary}`);
+    if (eventDetails.start) {
+      const startTime = formatDateTime(startDate);
+      const endTime = eventDetails.end ? formatDateTime(endDate) : "TBD";
+      details.push(`**Date & Time:** ${startTime} - ${endTime}`);
+    }
+    if (eventDetails.location)
+      details.push(`**Location:** ${eventDetails.location}`);
+    if (eventDetails.description)
+      details.push(`**Description:** ${eventDetails.description}`);
+    if (eventDetails.attendees && eventDetails.attendees.length > 0) {
+      const attendeeEmails = eventDetails.attendees
+        .map((a: any) => a.email || a)
+        .join(", ");
+      details.push(`**Attendees:** ${attendeeEmails}`);
+    }
+
+    return details.join("\n");
   };
 
   // Handle modal confirmation
@@ -334,8 +375,6 @@ export default function ChatPage() {
       setEventsLoading,
       setEventsError,
       setToastMessage,
-      addMessageMutation,
-      currentThreadId,
     });
 
   // AI Response hook
@@ -573,9 +612,13 @@ export default function ChatPage() {
 
     if (action === "confirm" && editedEventDetails) {
       // If we have edited details, send them as a modify message
-      // Use a clear format that the LLM will understand as a modify action
-      userMessage = `modify the event with these details: ${JSON.stringify(editedEventDetails)}`;
-      displayMessage = "modify"; // Display friendly message in UI
+      // Use formatted details that are easier for LLM to understand
+      const formattedDetails = formatEventDetailsForModify(editedEventDetails);
+      userMessage = `modify the event with these details:\n\n${formattedDetails}`;
+
+      // Use the same message for both display and LLM processing
+      displayMessage = `I modified the event with these details:\n\n${formattedDetails}`;
+
       eventDetailsToSend = editedEventDetails;
     }
 

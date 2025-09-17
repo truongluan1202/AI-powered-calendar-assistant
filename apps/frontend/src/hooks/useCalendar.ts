@@ -8,14 +8,6 @@ interface UseCalendarProps {
   setEventsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setEventsError: React.Dispatch<React.SetStateAction<string | null>>;
   setToastMessage: React.Dispatch<React.SetStateAction<string | null>>;
-  addMessageMutation?: {
-    mutate: (params: {
-      threadId: string;
-      role: "user" | "assistant" | "system";
-      content: string;
-    }) => void;
-  };
-  currentThreadId?: string | null;
 }
 
 export const useCalendar = ({
@@ -24,8 +16,6 @@ export const useCalendar = ({
   setEventsLoading,
   setEventsError,
   setToastMessage,
-  addMessageMutation,
-  currentThreadId,
 }: UseCalendarProps) => {
   const { data: session } = useSession();
 
@@ -101,9 +91,31 @@ export const useCalendar = ({
       }
     } catch (error) {
       console.error("Failed to fetch events:", error);
-      setEventsError(
-        `Failed to fetch events: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+
+      // Convert technical errors to user-friendly messages
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      let userFriendlyMessage =
+        "Unable to load your calendar events. Please try again.";
+
+      if (errorMessage.includes("401") || errorMessage.includes("403")) {
+        userFriendlyMessage =
+          "Please sign in to Google Calendar to view your events.";
+      } else if (
+        errorMessage.includes("network") ||
+        errorMessage.includes("fetch")
+      ) {
+        userFriendlyMessage =
+          "Network connection failed. Please check your internet and try again.";
+      } else if (errorMessage.includes("timeout")) {
+        userFriendlyMessage = "Request timed out. Please try again.";
+      } else if (errorMessage.includes("calendar")) {
+        userFriendlyMessage =
+          "Unable to access your calendar. Please check your permissions and try again.";
+      }
+
+      setEventsError(userFriendlyMessage);
+      showToast(`❌ ${userFriendlyMessage}`, setToastMessage);
     } finally {
       setEventsLoading(false);
     }
@@ -178,70 +190,58 @@ export const useCalendar = ({
           // Refresh events to show updated data
           await fetchEvents();
 
-          // Add a message to trigger LLM confirmation if we have chat context
-          if (addMessageMutation && currentThreadId) {
-            // Format the updated event details for display
-            const formatEventDetails = (data: any) => {
-              const details = [];
-              if (data.summary) details.push(`**Title:** ${data.summary}`);
-              if (data.start) {
-                const startTime = new Date(data.start).toLocaleString("en-US", {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                });
-                const endTime = data.end
-                  ? new Date(data.end).toLocaleString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })
-                  : "TBD";
-                details.push(`**Date & Time:** ${startTime} - ${endTime}`);
-              }
-              if (data.location) details.push(`**Location:** ${data.location}`);
-              if (data.description)
-                details.push(`**Description:** ${data.description}`);
-              if (data.attendees && data.attendees.length > 0) {
-                const attendeeEmails = data.attendees
-                  .map((a: any) => a.email || a)
-                  .join(", ");
-                details.push(`**Attendees:** ${attendeeEmails}`);
-              }
-              return details.join("\n");
-            };
-
-            const confirmationForm = formatEventDetails(eventData);
-            const editMessage = `I just updated an event with ID ${eventId}. Here are the updated details:\n\n${confirmationForm}`;
-
-            addMessageMutation.mutate({
-              threadId: currentThreadId,
-              role: "user",
-              content: editMessage,
-            });
-          } else {
-            // Fallback to generic message if no chat context
-            showToast("✅ Event updated successfully!", setToastMessage);
-          }
+          // Show success message - no need to add user message for direct edits
+          showToast("✅ Event updated successfully!", setToastMessage);
         } else {
           console.error("Tool execution failed:", result.error);
-          setEventsError(`Tool execution failed: ${result.error}`);
+          const errorMessage = result.error || "Unknown error";
+          let userFriendlyMessage =
+            "Unable to update the event. Please try again.";
+
+          if (errorMessage.includes("401") || errorMessage.includes("403")) {
+            userFriendlyMessage =
+              "Please sign in to Google Calendar to update events.";
+          } else if (
+            errorMessage.includes("not found") ||
+            errorMessage.includes("404")
+          ) {
+            userFriendlyMessage =
+              "Event not found. It may have been deleted or moved.";
+          } else if (
+            errorMessage.includes("permission") ||
+            errorMessage.includes("forbidden")
+          ) {
+            userFriendlyMessage =
+              "You don't have permission to update this event.";
+          }
+
+          setEventsError(userFriendlyMessage);
+          showToast(`❌ ${userFriendlyMessage}`, setToastMessage);
         }
       } else {
         console.error("No results returned from tool execution");
         setEventsError("No results returned from tool execution");
+        showToast(
+          "❌ Unable to update event. Please try again.",
+          setToastMessage,
+        );
       }
     } catch (error) {
       console.error("Failed to update event:", error);
-      setEventsError(
-        `Failed to update event: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      let userFriendlyMessage = "Unable to update the event. Please try again.";
+
+      if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
+        userFriendlyMessage =
+          "Network connection failed. Please check your internet and try again.";
+      } else if (errorMessage.includes("timeout")) {
+        userFriendlyMessage = "Request timed out. Please try again.";
+      }
+
+      setEventsError(userFriendlyMessage);
+      showToast(`❌ ${userFriendlyMessage}`, setToastMessage);
     } finally {
       setEventsLoading(false);
     }

@@ -34,13 +34,19 @@ export default function EventEditModal({
       const startDate = new Date(event.start);
       const endDate = new Date(event.end);
 
-      // Format dates for datetime-local input
+      // Format dates for datetime-local input (convert from Australia/Sydney to local for display)
       const formatDateTime = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        const hours = String(date.getHours()).padStart(2, "0");
-        const minutes = String(date.getMinutes()).padStart(2, "0");
+        // Convert from Australia/Sydney timezone to local time for the input
+        const localDate = new Date(
+          date.toLocaleString("en-US", {
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          }),
+        );
+        const year = localDate.getFullYear();
+        const month = String(localDate.getMonth() + 1).padStart(2, "0");
+        const day = String(localDate.getDate()).padStart(2, "0");
+        const hours = String(localDate.getHours()).padStart(2, "0");
+        const minutes = String(localDate.getMinutes()).padStart(2, "0");
         return `${year}-${month}-${day}T${hours}:${minutes}`;
       };
 
@@ -118,13 +124,24 @@ export default function EventEditModal({
     e.preventDefault();
     if (!event?.id) return;
 
+    // Convert local time to Australia/Sydney timezone for consistency
+    const convertToAustraliaTime = (localDate: Date) => {
+      // Create a new date in Australia/Sydney timezone
+      const ausTime = new Date(
+        localDate.toLocaleString("en-US", {
+          timeZone: "Australia/Sydney",
+        }),
+      );
+      return ausTime.toISOString();
+    };
+
     const updatedEvent: Partial<Event> = {
       id: event.id,
       summary: formData.summary,
       description: formData.description,
       location: formData.location,
-      start: new Date(formData.start).toISOString(),
-      end: new Date(formData.end).toISOString(),
+      start: convertToAustraliaTime(new Date(formData.start)),
+      end: convertToAustraliaTime(new Date(formData.end)),
     };
 
     await onSave(updatedEvent);

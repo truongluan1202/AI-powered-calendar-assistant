@@ -210,6 +210,7 @@ export default function CalendarPane({
                               hour: "numeric",
                               minute: "2-digit",
                               hour12: true,
+                              timeZone: "Australia/Sydney", // Always display in Australia/Sydney timezone
                             })}
                           </p>
                           {event.location && (

@@ -6,7 +6,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
-from app.services.llm import LLMService, LLMMessage
+from app.services.llm_service import LLMService
+from app.services.gemini_provider import LLMMessage
 from app.services.tools import get_tools_for_provider
 
 
@@ -80,26 +81,13 @@ async def generate_llm_response(request: GenerateRequest):
         # Get tools for the provider
         tools = get_tools_for_provider(request.model_provider)
 
-        # Check if this is a calendar-related query and use appropriate method
-        user_message = llm_messages[-1].content if llm_messages else ""
-        if llm_service.is_calendar_query(user_message):
-            # Use calendar-specific response generation for better tool calling
-            conversation_history = llm_messages[:-1] if len(llm_messages) > 1 else []
-            llm_response = await llm_service.generate_calendar_response(
-                provider=request.model_provider,
-                user_message=user_message,
-                conversation_history=conversation_history,
-                model=request.model_name,
-                tools=tools,
-            )
-        else:
-            # Use standard response generation
-            llm_response = await llm_service.generate_response(
-                provider=request.model_provider,
-                messages=llm_messages,
-                model=request.model_name,
-                tools=tools,
-            )
+        # Use unified response generation for all queries
+        llm_response = await llm_service.generate_response(
+            provider=request.model_provider,
+            messages=llm_messages,
+            model=request.model_name,
+            tools=tools,
+        )
 
         # Handle webSearch tool calls internally, others by frontend
         if llm_response.tool_calls:
@@ -204,9 +192,45 @@ async def generate_llm_response(request: GenerateRequest):
     except Exception as e:
         import traceback
 
+        # Log the full error for debugging
         traceback.print_exc()
-        raise HTTPException(
-            status_code=500, detail=f"Failed to generate LLM response: {str(e)}"
+
+        # Convert technical errors to user-friendly messages
+        error_message = str(e).lower()
+
+        if (
+            "api key" in error_message
+            or "authentication" in error_message
+            or "401" in error_message
+            or "403" in error_message
+        ):
+            user_friendly_message = "I'm having trouble connecting to the AI service. Please check if the service is properly configured and try again."
+        elif "503" in error_message and "overloaded" in error_message:
+            user_friendly_message = "Our AI model is currently experiencing high demand. Please wait a moment and try again."
+        elif "503" in error_message:
+            user_friendly_message = "The AI service is temporarily unavailable. Please try again in a few moments."
+        elif "429" in error_message or "rate limit" in error_message:
+            user_friendly_message = (
+                "Too many requests. Please wait a moment before trying again."
+            )
+        elif "timeout" in error_message or "timed out" in error_message:
+            user_friendly_message = (
+                "The request took too long to process. Please try again."
+            )
+        elif "network" in error_message or "connection" in error_message:
+            user_friendly_message = "Network connection failed. Please check your internet connection and try again."
+        elif "gemini" in error_message and "api" in error_message:
+            user_friendly_message = "I'm having trouble connecting to the AI service. Please try again in a moment."
+        else:
+            user_friendly_message = "I encountered an unexpected error. Please try again, and if the problem persists, please contact support."
+
+        # Return a 200 response with the user-friendly error message instead of raising an exception
+        return GenerateResponse(
+            content=user_friendly_message,
+            provider="gemini",
+            model="gemini-2.5-flash",
+            usage={},
+            tool_calls=[],
         )
 
 
