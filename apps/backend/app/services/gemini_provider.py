@@ -158,10 +158,6 @@ class GeminiProvider:
             else:
                 print(f"🔍 DEBUG: No candidates in response")
 
-            # Ensure we have some content
-            if not content:
-                content = "I apologize, but I'm having trouble processing your request. Could you please rephrase your question or try asking again?"
-
             print(f"🔍 DEBUG: Final content: '{content[:200]}...'")
             print(f"🔍 DEBUG: Final tool_calls: {tool_calls}")
             print(f"🔍 DEBUG: Number of tool calls: {len(tool_calls)}")
