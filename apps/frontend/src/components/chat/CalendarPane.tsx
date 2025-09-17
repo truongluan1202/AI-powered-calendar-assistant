@@ -61,7 +61,7 @@ export default function CalendarPane({
     }
   };
   return (
-    <div className="chat-panel-transparent relative z-10 flex min-h-0 w-full flex-col backdrop-blur-sm transition-all duration-300 ease-in-out xl:h-full xl:w-2/7 xl:min-w-2/7">
+    <div className="chat-panel-transparent relative z-10 flex min-h-0 w-full flex-col py-1 backdrop-blur-sm transition-all duration-300 ease-in-out xl:h-full xl:w-2/7 xl:min-w-2/7">
       <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div className="flex items-center space-x-3">
