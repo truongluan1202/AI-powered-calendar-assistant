@@ -1,12 +1,33 @@
 """Chat endpoints - Pure LLM service without database operations."""
 
 import json
+import re
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
 from app.services.llm import LLMService, LLMMessage
 from app.services.tools import get_tools_for_provider
+
+
+def clean_confirmation_format(content: str) -> str:
+    """Clean up any remaining old confirmation format elements from the content."""
+    # Remove the old format elements
+    content = re.sub(r"^---\s*\n?", "", content, flags=re.MULTILINE)
+    content = re.sub(r"\n?---\s*$", "", content, flags=re.MULTILINE)
+    content = re.sub(r"📅\s*\*\*Event Details:\*\*\s*\n?", "", content)
+    content = re.sub(
+        r"Please confirm: Type \'confirm\' to create, \'cancel\' to abort, or \'modify \[details\]\' to change something\.\s*\n?",
+        "",
+        content,
+    )
+
+    # Clean up any extra whitespace
+    content = re.sub(r"\n\s*\n\s*\n+", "\n\n", content)
+    content = content.strip()
+
+    return content
+
 
 router = APIRouter()
 
@@ -136,6 +157,9 @@ async def generate_llm_response(request: GenerateRequest):
                 if not content:
                     content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
 
+                # Clean up any remaining old confirmation format elements
+                content = clean_confirmation_format(content)
+
                 return GenerateResponse(
                     content=content,
                     provider=final_response.provider,
@@ -150,6 +174,9 @@ async def generate_llm_response(request: GenerateRequest):
                 if not content:
                     content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
 
+                # Clean up any remaining old confirmation format elements
+                content = clean_confirmation_format(content)
+
                 return GenerateResponse(
                     content=content,
                     provider=llm_response.provider,
@@ -162,6 +189,9 @@ async def generate_llm_response(request: GenerateRequest):
         content = llm_response.content.strip() if llm_response.content else ""
         if not content:
             content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
+
+        # Clean up any remaining old confirmation format elements
+        content = clean_confirmation_format(content)
 
         return GenerateResponse(
             content=content,

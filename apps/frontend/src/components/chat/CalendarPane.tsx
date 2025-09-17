@@ -10,6 +10,7 @@ interface CalendarPaneProps {
   fetchEvents: () => void;
   updateEvent: (eventId: string, eventData: any) => Promise<void>;
   deleteEvent: (eventId: string) => Promise<void>;
+  onHide?: () => void;
 }
 
 export default function CalendarPane({
@@ -20,6 +21,7 @@ export default function CalendarPane({
   fetchEvents,
   updateEvent,
   deleteEvent,
+  onHide,
 }: CalendarPaneProps) {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,7 +61,7 @@ export default function CalendarPane({
     }
   };
   return (
-    <div className="chat-panel-transparent relative z-10 flex min-h-0 w-full flex-col backdrop-blur-sm xl:h-full xl:w-2/7 xl:min-w-2/7">
+    <div className="chat-panel-transparent relative z-10 flex min-h-0 w-full flex-col backdrop-blur-sm transition-all duration-300 ease-in-out xl:h-full xl:w-2/7 xl:min-w-2/7">
       <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div className="flex items-center space-x-3">
@@ -82,35 +84,37 @@ export default function CalendarPane({
               Calendar
             </h2>
           </div>
-          <button
-            onClick={fetchEvents}
-            disabled={eventsLoading}
-            className="hover:shadow-elegant flex w-full items-center justify-center space-x-2 rounded-lg bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 sm:w-auto dark:from-gray-700 dark:to-gray-800 dark:text-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700"
-          >
-            {eventsLoading ? (
-              <>
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
-                <span>Loading...</span>
-              </>
-            ) : (
-              <>
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                <span>Refresh</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={fetchEvents}
+              disabled={eventsLoading}
+              className="hover:shadow-elegant flex w-full items-center justify-center space-x-2 rounded-lg bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 sm:w-auto dark:from-gray-700 dark:to-gray-800 dark:text-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700"
+            >
+              {eventsLoading ? (
+                <>
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                  <span>Loading...</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  {/* <span>Refresh</span> */}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -281,16 +285,6 @@ export default function CalendarPane({
                             )}
                           </div>
                           <div className="flex flex-col space-y-1">
-                            {isToday && (
-                              <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
-                                Today
-                              </span>
-                            )}
-                            {isPast && (
-                              <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
-                                Past
-                              </span>
-                            )}
                             {event.isOptimistic && !event.isConfirmed && (
                               <span className="rounded-full bg-black px-2 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
                                 Creating...

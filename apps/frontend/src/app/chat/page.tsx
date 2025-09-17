@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useChat } from "~/hooks/useChat";
 import { useAIResponse } from "~/hooks/useAIResponse";
 import { useCalendar } from "~/hooks/useCalendar";
+import { useLocalStorage } from "~/hooks/useLocalStorage";
 import { showToast } from "~/utils/chat";
 import ThreadSidebar from "~/components/chat/ThreadSidebar";
 import CalendarPane from "~/components/chat/CalendarPane";
@@ -75,10 +76,21 @@ export default function ChatPage() {
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [pendingEventDetails, setPendingEventDetails] = useState<any>(null);
   const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
+
+  // State for panel visibility (persisted in localStorage)
+  // These states will be remembered across page refreshes
+  const [showCalendar, setShowCalendar] = useLocalStorage(
+    "chat-show-calendar",
+    true,
+  );
+  const [showThreads, setShowThreads] = useLocalStorage(
+    "chat-show-threads",
+    true,
+  );
   const [editedEventDetails, setEditedEventDetails] = useState<any>(null);
 
-  // Parse event details from confirmation message
-  const parseEventDetailsFromMessage = (content: string) => {
+  // Parse event details from confirmation message (memoized for performance)
+  const parseEventDetailsFromMessage = useCallback((content: string) => {
     const lines = content.split("\n");
     const eventDetails: any = {};
 
@@ -144,7 +156,7 @@ export default function ChatPage() {
     }
 
     return eventDetails;
-  };
+  }, []);
 
   // Format AI's confirmation message to display local time instead of ISO
   const formatAIConfirmationMessage = (content: string) => {
@@ -239,7 +251,7 @@ export default function ChatPage() {
       });
     };
 
-    let message = `---\n📅 **Event Details:**\n**Title:** ${eventDetails.summary || "Untitled Event"}\n**Date & Time:** ${formatDateTime(startDate)} - ${formatDateTime(endDate)}`;
+    let message = `**Title:** ${eventDetails.summary || "Untitled Event"}\n**Date & Time:** ${formatDateTime(startDate)} - ${formatDateTime(endDate)}`;
 
     // Always include location field
     message += `\n**Location:** ${eventDetails.location || "None"}`;
@@ -257,8 +269,6 @@ export default function ChatPage() {
     } else {
       message += `\n**Attendees:** None`;
     }
-
-    message += `\n---\nPlease confirm: Type 'confirm' to create, 'cancel' to abort, or 'modify [details]' to change something.`;
 
     return message;
   };
@@ -357,7 +367,7 @@ export default function ChatPage() {
       void fetchEvents();
       setTimeout(() => focusInput(), 500);
     }
-  }, [session, threads.length, currentThreadId]);
+  }, [session, threads.length]);
 
   // Handle case where current thread no longer exists (e.g., after deletion)
   useEffect(() => {
@@ -491,6 +501,17 @@ export default function ChatPage() {
     };
   }, []);
 
+  // Memoized message lookup for better performance
+  const findMessageById = useCallback(
+    (messageId: string) => {
+      return (
+        messages.find((m) => m.id === messageId) ||
+        optimisticMessages.find((m) => m.id === messageId)
+      );
+    },
+    [messages, optimisticMessages],
+  );
+
   // Handle confirmation button clicks
   const handleConfirmation = async (
     action: "confirm" | "cancel" | "edit",
@@ -520,9 +541,7 @@ export default function ChatPage() {
         eventDetails = editedEventDetails;
       } else {
         // Parse event details from the confirmation message
-        const message =
-          messages.find((m) => m.id === messageId) ||
-          optimisticMessages.find((m) => m.id === messageId);
+        const message = findMessageById(messageId);
 
         if (message) {
           eventDetails = parseEventDetailsFromMessage(message.content);
@@ -547,11 +566,14 @@ export default function ChatPage() {
 
     // Use edited event details if available, otherwise use the original action
     let userMessage: string = action;
+    let displayMessage: string = action; // Message to display in UI
     let eventDetailsToSend = eventDetails;
 
     if (action === "confirm" && editedEventDetails) {
       // If we have edited details, send them as a modify message
-      userMessage = `modify ${JSON.stringify(editedEventDetails)}`;
+      // Use a clear format that the LLM will understand as a modify action
+      userMessage = `modify the event with these details: ${JSON.stringify(editedEventDetails)}`;
+      displayMessage = "modify"; // Display friendly message in UI
       eventDetailsToSend = editedEventDetails;
     }
 
@@ -563,7 +585,7 @@ export default function ChatPage() {
     const optimisticUserMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      content: userMessage,
+      content: displayMessage, // Use display message for UI
       createdAt: new Date(),
       isOptimistic: true,
     };
@@ -583,10 +605,11 @@ export default function ChatPage() {
       return newMessages;
     });
 
+    // Always store the display message for the user, but send JSON to AI
     addMessageMutation.mutate({
       threadId: currentThreadId,
       role: "user",
-      content: userMessage,
+      content: displayMessage, // Store the display message (e.g., "modify")
     });
 
     generateAIResponseMutation.mutate({
@@ -755,6 +778,11 @@ export default function ChatPage() {
   };
 
   const createNewThread = () => {
+    // Prevent multiple calls if mutation is already pending
+    if (createThreadMutation.isPending) {
+      return;
+    }
+
     createThreadMutation.mutate({
       title: "New Chat",
       modelProvider: "gemini",
@@ -890,20 +918,23 @@ export default function ChatPage() {
       )}
 
       {/* Left Sidebar - Threads */}
-      <ThreadSidebar
-        threads={threads}
-        currentThreadId={currentThreadId}
-        setCurrentThreadId={setCurrentThreadId}
-        editingThread={editingThread}
-        setEditingThread={setEditingThread}
-        editingTitle={editingTitle}
-        setEditingTitle={setEditingTitle}
-        createNewThread={createNewThread}
-        updateThreadTitle={updateThreadTitle}
-        deleteThread={deleteThread}
-        startEditing={startEditing}
-        cancelEditing={cancelEditing}
-      />
+      {showThreads && (
+        <ThreadSidebar
+          threads={threads}
+          currentThreadId={currentThreadId}
+          setCurrentThreadId={setCurrentThreadId}
+          editingThread={editingThread}
+          setEditingThread={setEditingThread}
+          editingTitle={editingTitle}
+          setEditingTitle={setEditingTitle}
+          createNewThread={createNewThread}
+          updateThreadTitle={updateThreadTitle}
+          deleteThread={deleteThread}
+          startEditing={startEditing}
+          cancelEditing={cancelEditing}
+          onHide={() => setShowThreads(false)}
+        />
+      )}
 
       {/* Main Content - Two Panes */}
       <div className="flex min-h-0 flex-1 flex-col lg:min-h-0 xl:flex-row">
@@ -933,33 +964,83 @@ export default function ChatPage() {
                 </h1>
               </div>
               <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Model:
-                </label>
-                <select
-                  value={model}
-                  onChange={(e) => {
-                    const newModel = e.target.value as GeminiModel;
-                    setModel(newModel);
+                <div className="flex items-center space-x-3">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Model:
+                  </label>
+                  <select
+                    value={model}
+                    onChange={(e) => {
+                      const newModel = e.target.value as GeminiModel;
+                      setModel(newModel);
 
-                    if (currentThreadId) {
-                      updateThreadModelMutation.mutate({
-                        threadId: currentThreadId,
-                        modelName: newModel,
-                      });
-                    }
-                  }}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none sm:w-auto dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-gray-400"
-                >
-                  <option value="gemini-2.5-flash-lite">
-                    Gemini 2.5 Flash Lite
-                  </option>
-                  <option value="gemini-2.0-flash-lite">
-                    Gemini 2.0 Flash Lite
-                  </option>
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                </select>
+                      if (currentThreadId) {
+                        updateThreadModelMutation.mutate({
+                          threadId: currentThreadId,
+                          modelName: newModel,
+                        });
+                      }
+                    }}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20 focus:outline-none sm:w-auto dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-gray-400"
+                  >
+                    <option value="gemini-2.5-flash-lite">
+                      Gemini 2.5 Flash Lite
+                    </option>
+                    <option value="gemini-2.0-flash-lite">
+                      Gemini 2.0 Flash Lite
+                    </option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  </select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowThreads(!showThreads)}
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200 ${
+                      showThreads
+                        ? "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500"
+                        : "bg-gray-100/50 text-gray-500 hover:bg-gray-200/50 dark:bg-gray-700/50 dark:text-gray-500 dark:hover:bg-gray-600/50"
+                    }`}
+                    title={showThreads ? "Hide Chat List" : "Show Chat List"}
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setShowCalendar(!showCalendar)}
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200 ${
+                      showCalendar
+                        ? "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500"
+                        : "bg-gray-100/50 text-gray-500 hover:bg-gray-200/50 dark:bg-gray-700/50 dark:text-gray-500 dark:hover:bg-gray-600/50"
+                    }`}
+                    title={showCalendar ? "Hide Calendar" : "Show Calendar"}
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -997,15 +1078,18 @@ export default function ChatPage() {
         </div>
 
         {/* Calendar Pane */}
-        <CalendarPane
-          events={events}
-          optimisticEvents={optimisticEvents}
-          eventsLoading={eventsLoading}
-          eventsError={eventsError}
-          fetchEvents={fetchEvents}
-          updateEvent={updateEvent}
-          deleteEvent={deleteEvent}
-        />
+        {showCalendar && (
+          <CalendarPane
+            events={events}
+            optimisticEvents={optimisticEvents}
+            eventsLoading={eventsLoading}
+            eventsError={eventsError}
+            fetchEvents={fetchEvents}
+            updateEvent={updateEvent}
+            deleteEvent={deleteEvent}
+            onHide={() => setShowCalendar(false)}
+          />
+        )}
       </div>
 
       {/* Event Confirmation Modal */}

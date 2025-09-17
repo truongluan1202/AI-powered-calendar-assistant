@@ -1,11 +1,11 @@
 // Check if a message is asking for confirmation
 export const isConfirmationMessage = (content: string) => {
   const confirmationKeywords = [
-    "Please confirm:",
-    "Type 'confirm' to create",
-    "Type 'cancel' to abort",
-    "Event Details:",
-    "📅 **Event Details:**",
+    "**Title:**",
+    "**Date & Time:**",
+    "**Location:**",
+    "**Description:**",
+    "**Attendees:**",
   ];
   return confirmationKeywords.some((keyword) => content.includes(keyword));
 };

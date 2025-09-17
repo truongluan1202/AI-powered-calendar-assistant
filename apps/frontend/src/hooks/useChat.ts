@@ -52,9 +52,22 @@ export const useChat = () => {
   const availableProviders = availableProvidersQuery.data;
 
   const createThreadMutation = api.chat.createThread.useMutation({
-    onSuccess: (newThread) => {
+    onSuccess: async (newThread) => {
+      // First refetch threads to get the updated list
+      await refetchThreads();
+
+      // Then set the current thread ID to ensure it's in the updated list
       setCurrentThreadId(newThread.id);
-      void refetchThreads();
+
+      // Focus input after thread is created and selected
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 200);
+    },
+    onError: (error) => {
+      console.error("Failed to create thread:", error);
     },
   });
 

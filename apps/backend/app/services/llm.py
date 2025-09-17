@@ -319,7 +319,26 @@ class GeminiProvider(BaseLLMProvider):
                 tool_calls=tool_calls,
             )
         except Exception as e:
-            raise Exception(f"Gemini API error: {str(e)}")
+            error_str = str(e)
+            # Handle specific Gemini API errors with user-friendly messages
+            if "503" in error_str and "overloaded" in error_str.lower():
+                raise Exception(
+                    "Our AI model is currently overloaded and experiencing high demand. Please try again in a few moments. We apologize for the inconvenience!"
+                )
+            elif "503" in error_str:
+                raise Exception(
+                    "The AI service is temporarily unavailable. Please try again in a few moments."
+                )
+            elif "429" in error_str:
+                raise Exception(
+                    "Too many requests. Please wait a moment before trying again."
+                )
+            elif "401" in error_str or "403" in error_str:
+                raise Exception(
+                    "Authentication error. Please refresh the page and try again."
+                )
+            else:
+                raise Exception(f"Gemini API error: {error_str}")
 
 
 # ----------------------------
@@ -398,6 +417,7 @@ class LLMService:
         system_message = LLMMessage(
             role="system",
             content=(
+                "CRITICAL: When showing event confirmation details, NEVER use '---', '📅 Event Details:', or 'Please confirm:' text. Use ONLY the format: **Title:**, **Date & Time:**, **Location:**, **Description:**, **Attendees:**\n\n"
                 "You are an AI calendar assistant. Help users manage their schedules, "
                 "create events, and answer questions about their calendar. "
                 "You have access to tools to get calendar events, create new events, and search the web. "
@@ -422,25 +442,22 @@ class LLMService:
                 "EVENT CREATION CONFIRMATION PROCESS:\n"
                 "When a user wants to create an event (either directly or after web search), follow this process:\n"
                 "1. First, present the event details clearly in a confirmation format (DO NOT call createEvent tool yet)\n"
-                "2. Ask the user to confirm with 'confirm', 'cancel', or 'modify [details]'\n"
+                "2. Present the event details for confirmation\n"
                 "3. ONLY when user responds with 'confirm', use handleEventConfirmation tool:\n"
                 "   - If 'confirm': use handleEventConfirmation with action='confirm' and eventDetails\n"
                 "   - If 'cancel': use handleEventConfirmation with action='cancel'\n"
                 "   - If 'modify [details]': use handleEventConfirmation with action='modify' and modifications\n"
+                "   - If 'modify the event with these details: {...}': use handleEventConfirmation with action='modify' and the provided eventDetails\n"
                 "4. The handleEventConfirmation tool will handle the actual event creation or cancellation\n"
                 "5. NEVER call createEvent tool directly - always use handleEventConfirmation tool\n"
                 "\n"
                 "CONFIRMATION FORMAT:\n"
-                "When asking for confirmation, use this format:\n"
-                "---\n"
-                "📅 **Event Details:**\n"
+                "When asking for confirmation, use this EXACT format (do NOT include '---', '📅 Event Details:', or 'Please confirm:' text):\n"
                 "**Title:** [Event Title]\n"
                 "**Date & Time:** [Start Time] - [End Time]\n"
                 "**Location:** [Location if specified]\n"
                 "**Description:** [Description if specified]\n"
                 "**Attendees:** [Attendees if specified]\n"
-                "---\n"
-                "Please confirm: Type 'confirm' to create, 'cancel' to abort, or 'modify [details]' to change something.\n"
                 "\n"
                 "Examples of when to use getEvents tool:\n"
                 "- 'What's on my calendar tomorrow?' → getEvents with timeMin=tomorrow, timeMax=day after tomorrow\n"
@@ -695,6 +712,7 @@ class LLMService:
         system_message = LLMMessage(
             role="system",
             content=(
+                "CRITICAL: When showing event confirmation details, NEVER use '---', '📅 Event Details:', or 'Please confirm:' text. Use ONLY the format: **Title:**, **Date & Time:**, **Location:**, **Description:**, **Attendees:**\n\n"
                 "You are an AI calendar assistant. Your primary function is to help users with their calendar.\n"
                 "Keep the tone polite and professional. Ask for more help after finishing a task. Always be helpful and concise. Behave accordingly to the user's tone and context, especially if they are angry or rude.\n\n"
                 "You MUST use tools to answer calendar questions - never try to answer without tools.\n\n"
@@ -716,24 +734,21 @@ class LLMService:
                 "EVENT CREATION CONFIRMATION PROCESS:\n"
                 "When a user wants to create an event (either directly or after web search), follow this process:\n"
                 "1. First, present the event details clearly in a confirmation format (DO NOT call createEvent tool yet)\n"
-                "2. Ask the user to confirm with 'confirm', 'cancel', or 'modify [details]'\n"
+                "2. Present the event details for confirmation\n"
                 "3. ONLY when user responds with 'confirm', use handleEventConfirmation tool:\n"
                 "   - If 'confirm': use handleEventConfirmation with action='confirm' and eventDetails\n"
                 "   - If 'cancel': use handleEventConfirmation with action='cancel'\n"
                 "   - If 'modify [details]': use handleEventConfirmation with action='modify' and modifications\n"
+                "   - If 'modify the event with these details: {...}': use handleEventConfirmation with action='modify' and the provided eventDetails\n"
                 "4. The handleEventConfirmation tool will handle the actual event creation or cancellation\n"
                 "5. NEVER call createEvent tool directly - always use handleEventConfirmation tool\n\n"
                 "CONFIRMATION FORMAT:\n"
-                "When asking for confirmation, use this format:\n"
-                "---\n"
-                "📅 **Event Details:**\n"
+                "When asking for confirmation, use this EXACT format (do NOT include '---', '📅 Event Details:', or 'Please confirm:' text):\n"
                 "**Title:** [Event Title]\n"
                 "**Date & Time:** [Start Time] - [End Time]\n"
                 "**Location:** [Location if specified]\n"
                 "**Description:** [Description if specified]\n"
-                "**Attendees:** [Attendees if specified]\n"
-                "---\n"
-                "Please confirm: Type 'confirm' to create, 'cancel' to abort, or 'modify [details]' to change something.\n\n"
+                "**Attendees:** [Attendees if specified]\n\n"
                 "HANDLING VAGUE REQUESTS - AUTO-COMPLETE WITH REASONABLE DEFAULTS:\n"
                 "When users make vague requests, intelligently fill in missing details:\n\n"
                 "• Missing title/summary: Use 'Meeting with [person]' or 'Meeting'\n"

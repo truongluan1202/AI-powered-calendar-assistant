@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Event } from "~/types/chat";
 
 interface EventConfirmationModalProps {
@@ -26,33 +26,40 @@ export default function EventConfirmationModal({
     end: "",
   });
 
+  // Memoized date formatting function for better performance
+  const formatDateTime = useCallback((date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }, []);
+
+  // Memoized form data initialization
+  const initialFormData = useMemo(() => {
+    if (!eventDetails) return null;
+
+    const startDate = new Date(
+      eventDetails.start?.dateTime || eventDetails.start,
+    );
+    const endDate = new Date(eventDetails.end?.dateTime || eventDetails.end);
+
+    return {
+      summary: eventDetails.summary || "",
+      description: eventDetails.description || "",
+      location: eventDetails.location || "",
+      start: formatDateTime(startDate),
+      end: formatDateTime(endDate),
+    };
+  }, [eventDetails, formatDateTime]);
+
   // Update form data when event details change
   useEffect(() => {
-    if (eventDetails) {
-      const startDate = new Date(
-        eventDetails.start?.dateTime || eventDetails.start,
-      );
-      const endDate = new Date(eventDetails.end?.dateTime || eventDetails.end);
-
-      // Format dates for datetime-local input
-      const formatDateTime = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        const hours = String(date.getHours()).padStart(2, "0");
-        const minutes = String(date.getMinutes()).padStart(2, "0");
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-      };
-
-      setFormData({
-        summary: eventDetails.summary || "",
-        description: eventDetails.description || "",
-        location: eventDetails.location || "",
-        start: formatDateTime(startDate),
-        end: formatDateTime(endDate),
-      });
+    if (initialFormData) {
+      setFormData(initialFormData);
     }
-  }, [eventDetails]);
+  }, [initialFormData]);
 
   // Handle start time change with auto end time adjustment
   const handleStartTimeChange = (newStartTime: string) => {

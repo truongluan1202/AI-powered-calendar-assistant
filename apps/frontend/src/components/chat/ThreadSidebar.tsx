@@ -13,6 +13,7 @@ interface ThreadSidebarProps {
   deleteThread: (threadId: string) => void;
   startEditing: (threadId: string, currentTitle: string) => void;
   cancelEditing: () => void;
+  onHide?: () => void;
 }
 
 export default function ThreadSidebar({
@@ -28,31 +29,34 @@ export default function ThreadSidebar({
   deleteThread,
   startEditing,
   cancelEditing,
+  onHide,
 }: ThreadSidebarProps) {
   return (
-    <div className="chat-panel-transparent flex w-full flex-col backdrop-blur-sm lg:max-h-full lg:min-h-0 lg:w-70">
+    <div className="chat-panel-transparent flex w-full flex-col backdrop-blur-sm transition-all duration-300 ease-in-out lg:max-h-full lg:min-h-0 lg:w-70">
       <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
-        <button
-          onClick={createNewThread}
-          className="hover:shadow-elegant w-full rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-1.75 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
-        >
-          <span className="flex items-center justify-center space-x-2">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span>New Chat</span>
-          </span>
-        </button>
+        <div className="flex items-center justify-between space-x-3">
+          <button
+            onClick={createNewThread}
+            className="hover:shadow-elegant flex-1 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-1.75 font-medium text-white transition-all duration-200 hover:scale-[1.02] hover:from-gray-700 hover:to-gray-800 active:scale-[0.98] dark:from-gray-200 dark:to-gray-300 dark:text-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-200"
+          >
+            <span className="flex items-center justify-center space-x-2">
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>New Chat</span>
+            </span>
+          </button>
+        </div>
       </div>
 
       <div className="mobile-scrollable flex-1 overflow-y-auto p-3 sm:p-4">

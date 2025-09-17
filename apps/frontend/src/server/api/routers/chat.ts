@@ -14,7 +14,7 @@ export const chatRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       },
       orderBy: {
-        updatedAt: "desc",
+        createdAt: "desc",
       },
     });
   }),

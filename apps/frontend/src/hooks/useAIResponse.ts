@@ -247,7 +247,19 @@ export const useAIResponse = ({
             );
 
             streamText(data.content || "", () => {
-              if (isConfirmationMessage(data.content || "")) {
+              // Only show confirmation buttons if there were no successful event creation tool calls
+              const hasSuccessfulEventCreation = data.toolCalls?.some(
+                (call: any) =>
+                  call.function.name === "createEvent" ||
+                  (call.function.name === "handleEventConfirmation" &&
+                    JSON.parse(call.function.arguments || "{}").action ===
+                      "confirm"),
+              );
+
+              if (
+                isConfirmationMessage(data.content || "") &&
+                !hasSuccessfulEventCreation
+              ) {
                 setTimeout(() => {
                   setShowConfirmationButtons((prev) => {
                     const newSet = new Set(prev);
@@ -405,6 +417,19 @@ export const useAIResponse = ({
       } else if (error.message.includes("AI generation failed")) {
         userMessage = "AI generation failed. Please try again.";
         toastMessage = "⚠️ AI generation failed. Please try again.";
+      } else if (
+        error.message.includes("503") ||
+        error.message.includes("overloaded")
+      ) {
+        userMessage =
+          "Our AI model is currently overloaded and experiencing high demand. Please try again in a few moments. We apologize for the inconvenience!";
+        toastMessage =
+          "🚀 AI model is overloaded. Please try again in a few moments.";
+      } else if (error.message.includes("UNAVAILABLE")) {
+        userMessage =
+          "The AI service is temporarily unavailable. Please try again in a few moments.";
+        toastMessage =
+          "⏳ AI service is temporarily unavailable. Please try again later.";
       }
 
       showToast(toastMessage, setToastMessage);

@@ -632,11 +632,53 @@ export class ToolExecutor {
           };
 
         case "modify":
-          return {
-            tool_call_id: "",
-            content: `User wants to modify: ${modifications || "No specific modifications mentioned"}. Please present updated event details for confirmation.`,
-            success: true,
-          };
+          if (eventDetails) {
+            // If eventDetails are provided, present them for confirmation
+            const { summary, start, end, location, description, attendees } =
+              eventDetails;
+
+            // Format the event details for display
+            const formatDateTime = (dateTime: string) => {
+              const date = new Date(dateTime);
+              return date.toLocaleString("en-AU", {
+                timeZone: "Australia/Sydney",
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              });
+            };
+
+            let content = `**Title:** ${summary || "Untitled Event"}\n`;
+            content += `**Date & Time:** ${formatDateTime(start?.dateTime || start)} - ${formatDateTime(end?.dateTime || end)}\n`;
+            content += `**Location:** ${location || "None"}\n`;
+            if (description) {
+              content += `**Description:** ${description}\n`;
+            }
+            if (attendees && attendees.length > 0) {
+              const attendeeEmails = attendees
+                .map((a: any) => a.email)
+                .join(", ");
+              content += `**Attendees:** ${attendeeEmails}\n`;
+            } else {
+              content += `**Attendees:** None\n`;
+            }
+
+            return {
+              tool_call_id: "",
+              content: content,
+              success: true,
+            };
+          } else {
+            return {
+              tool_call_id: "",
+              content: `User wants to modify: ${modifications || "No specific modifications mentioned"}. Please present updated event details for confirmation.`,
+              success: true,
+            };
+          }
 
         default:
           return {

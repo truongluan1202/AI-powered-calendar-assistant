@@ -131,8 +131,7 @@ export default function HomePage() {
               </span>
               <span className="text-gray-900 dark:text-gray-100">
                 {" "}
-                - Our smartest AI model to help you manage your time
-                effectively.
+                - Our smartest AI model to help you manage your time effectively
               </span>
             </h1>
             <p className="animate-slide-in-bottom animate-delay-400 text-refined mx-auto mt-3 max-w-md text-base text-gray-500 sm:text-lg md:mt-5 md:max-w-3xl md:text-xl dark:text-gray-400">
