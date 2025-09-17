@@ -8,6 +8,14 @@ interface UseCalendarProps {
   setEventsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setEventsError: React.Dispatch<React.SetStateAction<string | null>>;
   setToastMessage: React.Dispatch<React.SetStateAction<string | null>>;
+  addMessageMutation?: {
+    mutate: (params: {
+      threadId: string;
+      role: "user" | "assistant" | "system";
+      content: string;
+    }) => void;
+  };
+  currentThreadId?: string | null;
 }
 
 export const useCalendar = ({
@@ -16,6 +24,8 @@ export const useCalendar = ({
   setEventsLoading,
   setEventsError,
   setToastMessage,
+  addMessageMutation,
+  currentThreadId,
 }: UseCalendarProps) => {
   const { data: session } = useSession();
 
@@ -167,7 +177,58 @@ export const useCalendar = ({
         if (result.success) {
           // Refresh events to show updated data
           await fetchEvents();
-          showToast("✅ Event updated successfully!", setToastMessage);
+
+          // Add a message to trigger LLM confirmation if we have chat context
+          if (addMessageMutation && currentThreadId) {
+            // Format the updated event details for display
+            const formatEventDetails = (data: any) => {
+              const details = [];
+              if (data.summary) details.push(`**Title:** ${data.summary}`);
+              if (data.start) {
+                const startTime = new Date(data.start).toLocaleString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+                const endTime = data.end
+                  ? new Date(data.end).toLocaleString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                  : "TBD";
+                details.push(`**Date & Time:** ${startTime} - ${endTime}`);
+              }
+              if (data.location) details.push(`**Location:** ${data.location}`);
+              if (data.description)
+                details.push(`**Description:** ${data.description}`);
+              if (data.attendees && data.attendees.length > 0) {
+                const attendeeEmails = data.attendees
+                  .map((a: any) => a.email || a)
+                  .join(", ");
+                details.push(`**Attendees:** ${attendeeEmails}`);
+              }
+              return details.join("\n");
+            };
+
+            const confirmationForm = formatEventDetails(eventData);
+            const editMessage = `I just updated an event with ID ${eventId}. Here are the updated details:\n\n${confirmationForm}`;
+
+            addMessageMutation.mutate({
+              threadId: currentThreadId,
+              role: "user",
+              content: editMessage,
+            });
+          } else {
+            // Fallback to generic message if no chat context
+            showToast("✅ Event updated successfully!", setToastMessage);
+          }
         } else {
           console.error("Tool execution failed:", result.error);
           setEventsError(`Tool execution failed: ${result.error}`);

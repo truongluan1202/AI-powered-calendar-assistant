@@ -334,6 +334,8 @@ export default function ChatPage() {
       setEventsLoading,
       setEventsError,
       setToastMessage,
+      addMessageMutation,
+      currentThreadId,
     });
 
   // AI Response hook
