@@ -18,7 +18,7 @@ def clean_confirmation_format(content: str) -> str:
     content = re.sub(r"\n?---\s*$", "", content, flags=re.MULTILINE)
     content = re.sub(r"📅\s*\*\*Event Details:\*\*\s*\n?", "", content)
     content = re.sub(
-        r"Please confirm: Type \'confirm\' to create, \'cancel\' to abort, or \'modify \[details\]\' to change something\.\s*\n?",
+        r"Please confirm: Type \'confirm\' to create or \'modify \[details\]\' to change something\.\s*\n?",
         "",
         content,
     )
@@ -89,6 +89,13 @@ async def generate_llm_response(request: GenerateRequest):
             tools=tools,
         )
 
+        print(f"🔍 DEBUG: LLM Response received:")
+        print(f"🔍 DEBUG: - Content: '{llm_response.content[:200]}...'")
+        print(f"🔍 DEBUG: - Provider: {llm_response.provider}")
+        print(f"🔍 DEBUG: - Model: {llm_response.model}")
+        print(f"🔍 DEBUG: - Tool calls: {llm_response.tool_calls}")
+        print(f"🔍 DEBUG: - Number of tool calls: {len(llm_response.tool_calls)}")
+
         # Handle webSearch tool calls internally, others by frontend
         if llm_response.tool_calls:
             web_search_calls = [
@@ -126,11 +133,25 @@ async def generate_llm_response(request: GenerateRequest):
                         pass
 
                 # Add tool results to conversation
-                updated_messages.append(
-                    LLMMessage(role="tool", content=json.dumps(tool_results))
+                tool_results_message = LLMMessage(
+                    role="tool", content=json.dumps(tool_results)
+                )
+                updated_messages.append(tool_results_message)
+
+                print(f"🔍 DEBUG: Tool results added to conversation:")
+                print(f"🔍 DEBUG: - Tool results: {tool_results}")
+                print(
+                    f"🔍 DEBUG: - Tool results message: {tool_results_message.content}"
                 )
 
                 # Generate final response with tool results
+                print(f"🔍 DEBUG: Calling LLM with updated messages:")
+                print(f"🔍 DEBUG: - Number of messages: {len(updated_messages)}")
+                for i, msg in enumerate(updated_messages):
+                    print(
+                        f"🔍 DEBUG: - Message {i}: {msg.role} - {msg.content[:100]}..."
+                    )
+
                 final_response = await llm_service.generate_response(
                     provider=request.model_provider,
                     messages=updated_messages,
@@ -138,23 +159,39 @@ async def generate_llm_response(request: GenerateRequest):
                     tools=tools,
                 )
 
+                print(f"🔍 DEBUG: Final response after tool execution:")
+                print(f"🔍 DEBUG: - Content: '{final_response.content[:200]}...'")
+                print(f"🔍 DEBUG: - Tool calls: {final_response.tool_calls}")
+                print(
+                    f"🔍 DEBUG: - Content length: {len(final_response.content) if final_response.content else 0}"
+                )
+
                 # Ensure we never return empty content
                 content = (
                     final_response.content.strip() if final_response.content else ""
                 )
                 if not content:
+                    # Fallback for empty responses after tool execution
+                    print(f"🔍 DEBUG: Empty content detected, using fallback")
                     content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
+                    print(f"🔍 DEBUG: Fallback content: '{content}'")
 
                 # Clean up any remaining old confirmation format elements
                 content = clean_confirmation_format(content)
 
-                return GenerateResponse(
+                final_response_obj = GenerateResponse(
                     content=content,
                     provider=final_response.provider,
                     model=final_response.model,
                     usage=final_response.usage,
                     tool_calls=final_response.tool_calls,
                 )
+
+                print(f"🔍 DEBUG: Final response (with web search):")
+                print(f"🔍 DEBUG: - Content: '{final_response_obj.content[:200]}...'")
+                print(f"🔍 DEBUG: - Tool calls: {final_response_obj.tool_calls}")
+
+                return final_response_obj
             else:
                 # Only non-webSearch tool calls, return them for frontend handling
                 # Ensure we never return empty content
@@ -165,13 +202,19 @@ async def generate_llm_response(request: GenerateRequest):
                 # Clean up any remaining old confirmation format elements
                 content = clean_confirmation_format(content)
 
-                return GenerateResponse(
+                final_response_obj = GenerateResponse(
                     content=content,
                     provider=llm_response.provider,
                     model=llm_response.model,
                     usage=llm_response.usage,
                     tool_calls=other_calls,
                 )
+
+                print(f"🔍 DEBUG: Final response (no web search):")
+                print(f"🔍 DEBUG: - Content: '{final_response_obj.content[:200]}...'")
+                print(f"🔍 DEBUG: - Tool calls: {final_response_obj.tool_calls}")
+
+                return final_response_obj
 
         # Ensure we never return empty content
         content = llm_response.content.strip() if llm_response.content else ""
@@ -181,13 +224,19 @@ async def generate_llm_response(request: GenerateRequest):
         # Clean up any remaining old confirmation format elements
         content = clean_confirmation_format(content)
 
-        return GenerateResponse(
+        final_response_obj = GenerateResponse(
             content=content,
             provider=llm_response.provider,
             model=llm_response.model,
             usage=llm_response.usage,
             tool_calls=llm_response.tool_calls,
         )
+
+        print(f"🔍 DEBUG: Final response (no tool calls):")
+        print(f"🔍 DEBUG: - Content: '{final_response_obj.content[:200]}...'")
+        print(f"🔍 DEBUG: - Tool calls: {final_response_obj.tool_calls}")
+
+        return final_response_obj
 
     except Exception as e:
         import traceback

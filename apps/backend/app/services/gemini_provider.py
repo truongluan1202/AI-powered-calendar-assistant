@@ -2,10 +2,14 @@
 
 import json
 import asyncio
+import warnings
 from typing import List, Optional, Dict, Any
 import google.genai as genai
 
 from app.core.config import settings
+
+# Suppress warnings from Google Gen AI SDK about non-text parts
+warnings.filterwarnings("ignore", message=".*non-text parts.*", category=UserWarning)
 
 
 class LLMMessage:
@@ -93,44 +97,85 @@ class GeminiProvider:
                 ),
             )
 
-            content = (
-                response.text if hasattr(response, "text") and response.text else ""
-            )
-
-            # Extract tool calls if present (Gemini format)
+            # Extract content and tool calls manually to avoid warnings
+            content = ""
             tool_calls = []
+
+            print(f"🔍 DEBUG: Response type: {type(response)}")
+            print(f"🔍 DEBUG: Response attributes: {dir(response)}")
+
             if hasattr(response, "candidates") and response.candidates:
-                for candidate in response.candidates:
+                print(f"🔍 DEBUG: Number of candidates: {len(response.candidates)}")
+                for i, candidate in enumerate(response.candidates):
+                    print(f"🔍 DEBUG: Candidate {i} type: {type(candidate)}")
+                    print(f"🔍 DEBUG: Candidate {i} attributes: {dir(candidate)}")
+
                     if (
                         hasattr(candidate, "content")
                         and candidate.content
                         and hasattr(candidate.content, "parts")
                         and candidate.content.parts
                     ):
-                        for part in candidate.content.parts:
-                            if (
+                        print(
+                            f"🔍 DEBUG: Candidate {i} has {len(candidate.content.parts)} parts"
+                        )
+                        for j, part in enumerate(candidate.content.parts):
+                            print(f"🔍 DEBUG: Part {j} type: {type(part)}")
+                            print(f"🔍 DEBUG: Part {j} attributes: {dir(part)}")
+
+                            # Extract text content only
+                            if hasattr(part, "text") and part.text:
+                                content += part.text
+                                print(
+                                    f"🔍 DEBUG: Added text content: '{part.text[:100]}...'"
+                                )
+                            # Extract function calls
+                            elif (
                                 hasattr(part, "function_call")
                                 and part.function_call is not None
                             ):
                                 json_args = json.dumps(part.function_call.args)
-                                tool_calls.append(
-                                    {
-                                        "id": f"gemini-{hash(part.function_call.name)}",
-                                        "type": "function",
-                                        "function": {
-                                            "name": part.function_call.name,
-                                            "arguments": json_args,
-                                        },
-                                    }
+                                tool_call = {
+                                    "id": f"gemini-{hash(part.function_call.name)}",
+                                    "type": "function",
+                                    "function": {
+                                        "name": part.function_call.name,
+                                        "arguments": json_args,
+                                    },
+                                }
+                                tool_calls.append(tool_call)
+                                print(
+                                    f"🔍 DEBUG: Added function call: {part.function_call.name} with args: {json_args}"
                                 )
+                            # Skip any other non-text parts to avoid warnings
+                            else:
+                                print(
+                                    f"🔍 DEBUG: Skipping part {j} - neither text nor function_call"
+                                )
+                                pass
+                    else:
+                        print(f"🔍 DEBUG: Candidate {i} has no content or parts")
+            else:
+                print(f"🔍 DEBUG: No candidates in response")
 
-            return LLMResponse(
+            # Ensure we have some content
+            if not content:
+                content = "I apologize, but I'm having trouble processing your request. Could you please rephrase your question or try asking again?"
+
+            print(f"🔍 DEBUG: Final content: '{content[:200]}...'")
+            print(f"🔍 DEBUG: Final tool_calls: {tool_calls}")
+            print(f"🔍 DEBUG: Number of tool calls: {len(tool_calls)}")
+
+            response_obj = LLMResponse(
                 content=content,
                 provider="gemini",
                 model=self.model,
                 usage={},  # Gemini doesn't provide detailed usage info
                 tool_calls=tool_calls,
             )
+
+            print(f"🔍 DEBUG: LLMResponse created: {response_obj}")
+            return response_obj
         except Exception as e:
             error_str = str(e)
             # Handle specific Gemini API errors with user-friendly messages

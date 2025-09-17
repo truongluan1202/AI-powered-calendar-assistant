@@ -81,14 +81,14 @@ CALENDAR_TOOLS = [
         "type": "function",
         "function": {
             "name": "handleEventConfirmation",
-            "description": "Handle user confirmation for event creation. Use this when user responds with 'confirm', 'cancel', or 'modify [details]' to an event confirmation request.",
+            "description": "Handle user confirmation for event creation. Use this when user responds with 'confirm' or 'modify [details]' to an event confirmation request.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "action": {
                         "type": "string",
-                        "enum": ["confirm", "cancel", "modify"],
-                        "description": "The user's confirmation action: 'confirm' to create the event, 'cancel' to abort, or 'modify' to change details",
+                        "enum": ["confirm", "modify"],
+                        "description": "The user's confirmation action: 'confirm' to create the event, or 'modify' to change details",
                     },
                     "eventDetails": {
                         "type": "object",

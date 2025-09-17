@@ -175,18 +175,6 @@ export const useAIResponse = ({
                     location: args.eventDetails.location || "",
                   });
                 }
-              } else if (action === "cancel") {
-                setOptimisticMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.role === "assistant" && msg.isOptimistic
-                      ? {
-                          ...msg,
-                          content: "Event creation cancelled.",
-                          isLoading: false,
-                        }
-                      : msg,
-                  ),
-                );
               } else if (action === "modify") {
                 setOptimisticMessages((prev) =>
                   prev.map((msg) =>

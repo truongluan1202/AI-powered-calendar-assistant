@@ -624,13 +624,6 @@ export class ToolExecutor {
           // Create the event using the existing createEvent method
           return await this.createEvent(eventDetails);
 
-        case "cancel":
-          return {
-            tool_call_id: "",
-            content: "Event creation cancelled by user",
-            success: true,
-          };
-
         case "modify":
           if (eventDetails) {
             // If eventDetails are provided, present them for confirmation

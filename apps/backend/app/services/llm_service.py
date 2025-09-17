@@ -74,7 +74,7 @@ class LLMService:
                     "success": True,
                 }
             else:
-                # For other tools (getEvents, handleEventConfirmation), don't execute them
+                # For other tools (getEvents), don't execute them
                 # They should be handled by the frontend
                 raise NotImplementedError(
                     f"Tool '{tool_name}' not implemented in backend"
@@ -121,7 +121,6 @@ class LLMService:
             "evening",
             "night",
             "confirm",
-            "cancel",
             "modify",
             "edit",
             "delete",
