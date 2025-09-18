@@ -369,15 +369,16 @@ export const useAIResponse = ({
       }
     },
     onError: (error) => {
+      // Clear all optimistic messages and reset state
       cleanupOptimisticState();
-      isSendingRef.current = false;
 
-      let userMessage = "Sorry, I encountered an error. Please try again.";
+      isSendingRef.current = false;
+      setIsExecutingTool(false);
+      setIsStreaming(false);
+
       let toastMessage = "❌ Sorry, I encountered an error. Please try again.";
 
       if (!navigator.onLine) {
-        userMessage =
-          "You appear to be offline. Please check your internet connection and try again.";
         toastMessage =
           "📡 You're offline. Please check your internet connection.";
       } else if (
@@ -388,60 +389,36 @@ export const useAIResponse = ({
         error.message.includes("ERR_CONNECTION_REFUSED") ||
         error.message.includes("ERR_CONNECTION_TIMED_OUT")
       ) {
-        userMessage =
-          "Network connection failed. Please check your internet connection and try again.";
         toastMessage =
           "🌐 Network connection failed. Please check your internet.";
       } else if (error.message.includes("Unable to connect to AI service")) {
-        userMessage =
-          "I'm unable to connect to the AI service. Please check if the backend is running and try again.";
         toastMessage =
           "🔌 Unable to connect to AI service. Please check backend connection.";
       } else if (error.message.includes("AI service is unavailable")) {
-        userMessage =
-          "The AI service is currently unavailable. Please try again later.";
         toastMessage =
           "⏳ AI service is temporarily unavailable. Please try again later.";
       } else if (error.message.includes("AI service error")) {
-        userMessage =
-          "There was an error with the AI service. Please try again.";
         toastMessage = "🤖 AI service error. Please try again.";
       } else if (error.message.includes("AI generation failed")) {
-        userMessage = "AI generation failed. Please try again.";
         toastMessage = "⚠️ AI generation failed. Please try again.";
       } else if (
         error.message.includes("503") ||
         error.message.includes("overloaded")
       ) {
-        userMessage =
-          "Our AI model is currently overloaded and experiencing high demand. Please try again in a few moments. We apologize for the inconvenience!";
         toastMessage =
           "🚀 AI model is overloaded. Please try again in a few moments.";
       } else if (error.message.includes("UNAVAILABLE")) {
-        userMessage =
-          "The AI service is temporarily unavailable. Please try again in a few moments.";
         toastMessage =
           "⏳ AI service is temporarily unavailable. Please try again later.";
       }
 
       showToast(toastMessage, setToastMessage);
 
-      const errorMessage = {
-        id: `error-${Date.now()}`,
-        role: "assistant",
-        content: userMessage,
-        createdAt: new Date(),
-        isOptimistic: true,
-        isLoading: false,
-      };
-
-      setOptimisticMessages((prev) => [...prev, errorMessage]);
-
-      setTimeout(() => {
-        setOptimisticMessages((prev) =>
-          prev.filter((msg) => msg.id !== errorMessage.id),
-        );
-      }, 5000);
+      // Refetch messages to get clean state
+      void refetchMessages().then(() => {
+        setOptimisticMessages([]);
+        setTimeout(() => focusInput(), 100);
+      });
     },
   });
 

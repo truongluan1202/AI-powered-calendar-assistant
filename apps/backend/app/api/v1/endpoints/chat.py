@@ -371,33 +371,26 @@ async def generate_llm_response(request: GenerateRequest):
         # Log the full error for debugging
         traceback.print_exc()
 
-        # Convert technical errors to user-friendly messages
-        error_message = str(e).lower()
+        # The Gemini provider already converts errors to user-friendly messages
+        # So we can use the error message directly
+        error_message = str(e)
+        print(f"🔍 DEBUG: Error message: {error_message}")
 
-        if (
-            "api key" in error_message
-            or "authentication" in error_message
-            or "401" in error_message
-            or "403" in error_message
+        # If the error message already looks user-friendly, use it directly
+        if any(
+            phrase in error_message.lower()
+            for phrase in [
+                "currently overloaded",
+                "temporarily unavailable",
+                "too many requests",
+                "authentication error",
+                "please try again",
+                "please wait",
+            ]
         ):
-            user_friendly_message = "I'm having trouble connecting to the AI service. Please check if the service is properly configured and try again."
-        elif "503" in error_message and "overloaded" in error_message:
-            user_friendly_message = "Our AI model is currently experiencing high demand. Please wait a moment and try again."
-        elif "503" in error_message:
-            user_friendly_message = "The AI service is temporarily unavailable. Please try again in a few moments."
-        elif "429" in error_message or "rate limit" in error_message:
-            user_friendly_message = (
-                "Too many requests. Please wait a moment before trying again."
-            )
-        elif "timeout" in error_message or "timed out" in error_message:
-            user_friendly_message = (
-                "The request took too long to process. Please try again."
-            )
-        elif "network" in error_message or "connection" in error_message:
-            user_friendly_message = "Network connection failed. Please check your internet connection and try again."
-        elif "gemini" in error_message and "api" in error_message:
-            user_friendly_message = "I'm having trouble connecting to the AI service. Please try again in a moment."
+            user_friendly_message = error_message
         else:
+            # Fallback for unexpected errors
             user_friendly_message = "I encountered an unexpected error. Please try again, and if the problem persists, please contact support."
 
         # Return a 200 response with the user-friendly error message instead of raising an exception

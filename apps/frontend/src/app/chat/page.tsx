@@ -308,12 +308,8 @@ export default function ChatPage() {
   // Clean up all optimistic state
   const cleanupOptimisticState = () => {
     setOptimisticMessages((prev) => {
-      const cleanedMessages = prev.filter(
-        (msg) =>
-          !msg.isOptimistic &&
-          !msg.content.includes("Sorry, I encountered an error") &&
-          !msg.content.includes("error"),
-      );
+      // Keep only non-optimistic messages
+      const cleanedMessages = prev.filter((msg) => !msg.isOptimistic);
       return cleanedMessages;
     });
     setOptimisticEvents((prev) => {

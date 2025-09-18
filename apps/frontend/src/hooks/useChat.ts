@@ -76,9 +76,8 @@ export const useChat = () => {
       void refetchMessages();
     },
     onError: () => {
-      setOptimisticMessages((prev) =>
-        prev.filter((msg) => !msg.isOptimistic || msg.role !== "user"),
-      );
+      // Clear all optimistic messages on error
+      setOptimisticMessages((prev) => prev.filter((msg) => !msg.isOptimistic));
       isSendingRef.current = false;
     },
   });
