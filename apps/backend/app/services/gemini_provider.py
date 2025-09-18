@@ -78,7 +78,7 @@ class GeminiProvider:
             # Prepare generation config
             config = genai.types.GenerateContentConfig(
                 max_output_tokens=1000,
-                temperature=0.7,
+                temperature=0.6,
                 thinking_config=genai.types.ThinkingConfig(thinking_budget=0),
             )
 

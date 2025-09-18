@@ -98,7 +98,7 @@ class OpenAIProvider(BaseLLMProvider):
                 "model": self.model,
                 "messages": openai_messages,
                 "max_tokens": 1000,
-                "temperature": 0.7,
+                "temperature": 0.6,
             }
 
             # Add tools if provided
@@ -172,7 +172,7 @@ class AnthropicProvider(BaseLLMProvider):
             request_params = {
                 "model": self.model,
                 "max_tokens": 1000,
-                "temperature": 0.7,
+                "temperature": 0.6,
                 "system": system_message,
                 "messages": anthropic_messages,
             }
@@ -263,7 +263,7 @@ class GeminiProvider(BaseLLMProvider):
             # Prepare generation config
             config = genai.types.GenerateContentConfig(
                 max_output_tokens=1000,
-                temperature=0.7,
+                temperature=0.6,
             )
 
             # Add tools if provided (already formatted for Gemini in tools.py)
