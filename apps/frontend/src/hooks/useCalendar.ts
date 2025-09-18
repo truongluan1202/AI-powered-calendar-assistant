@@ -20,7 +20,10 @@ export const useCalendar = ({
   const { data: session } = useSession();
 
   // Fetch events from Google Calendar
-  const fetchEvents = async () => {
+  const fetchEvents = async (timeWindow?: {
+    timeMin: string;
+    timeMax: string;
+  }) => {
     if (!session?.access_token) {
       console.error("No access token available for fetching events");
       setEventsError("No access token available");
@@ -32,8 +35,18 @@ export const useCalendar = ({
     setOptimisticEvents([]);
 
     try {
-      const timeMin = "7 days ago";
-      const timeMax = "30 days from now";
+      // Use provided time window or default to "This Week"
+      let timeMin = timeWindow?.timeMin || "7 days ago";
+      let timeMax = timeWindow?.timeMax || "30 days from now";
+
+      // If we have RFC3339 timestamps, use them directly
+      if (timeWindow?.timeMin?.includes("T")) {
+        timeMin = timeWindow.timeMin;
+        timeMax = timeWindow.timeMax;
+        console.log("Using custom time range:", { timeMin, timeMax });
+      } else {
+        console.log("Using default time range:", { timeMin, timeMax });
+      }
 
       const response = await fetch("/api/tools/execute", {
         method: "POST",
@@ -77,8 +90,9 @@ export const useCalendar = ({
           setEventsError(null);
 
           const eventCount = data.events?.length || 0;
+          const timeWindowLabel = timeWindow ? "selected range" : "This Week";
           showToast(
-            `📅 Calendar refreshed! Found ${eventCount} event${eventCount !== 1 ? "s" : ""}`,
+            `📅 Calendar refreshed! Found ${eventCount} event${eventCount !== 1 ? "s" : ""} for ${timeWindowLabel}`,
             setToastMessage,
           );
         } else {

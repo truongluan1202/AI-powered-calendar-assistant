@@ -59,9 +59,23 @@ export default function ThreadSidebar({
         </div>
       </div>
 
-      <div className="mobile-scrollable flex-1 overflow-y-auto p-3 sm:p-4">
+      <div
+        className="mobile-scrollable flex-1 overflow-y-auto p-3 sm:p-4"
+        onClick={(e) => {
+          // Clear thread if clicking on empty space (not on thread items)
+          const target = e.target as HTMLElement;
+          const isThreadItem = target.closest("[data-thread-item]");
+
+          if (!isThreadItem) {
+            setCurrentThreadId(null);
+          }
+        }}
+      >
         {threads.length === 0 ? (
-          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+          <div
+            data-thread-item
+            className="py-8 text-center text-gray-500 dark:text-gray-400"
+          >
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
               <svg
                 className="h-6 w-6 text-gray-400 dark:text-gray-500"
@@ -89,6 +103,7 @@ export default function ThreadSidebar({
             {threads.map((thread: any) => (
               <div
                 key={thread.id}
+                data-thread-item
                 className={`group cursor-pointer rounded-xl p-3 transition-all duration-200 sm:p-4 ${
                   currentThreadId === thread.id
                     ? "shadow-refined border border-gray-300 bg-gradient-to-r from-gray-100 to-gray-200 dark:border-gray-600 dark:from-gray-700/10 dark:to-gray-700/50"

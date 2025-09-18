@@ -35,7 +35,7 @@ def get_context_aware_response(tool_calls):
     print(f"🔍 DEBUG: Getting context-aware response for tool calls: {tool_calls}")
 
     if not tool_calls:
-        print(f"🔍 DEBUG: No tool calls, using default fallback")
+        print("🔍 DEBUG: No tool calls, using default fallback")
         return "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
 
     # Check for handleEventConfirmation tool calls
@@ -77,7 +77,7 @@ def get_context_aware_response(tool_calls):
     # Check for getEvents tool calls
     for tool_call in tool_calls:
         if tool_call.get("function", {}).get("name") == "getEvents":
-            print(f"🔍 DEBUG: Found getEvents, returning 'Here are your events:'")
+            print("🔍 DEBUG: Found getEvents, returning 'Here are your events:'")
             return "📅 Here are your events:"
 
     # Check for webSearch tool calls
@@ -95,23 +95,23 @@ def get_context_aware_response(tool_calls):
     # Check for createEvent tool calls (if any)
     for tool_call in tool_calls:
         if tool_call.get("function", {}).get("name") == "createEvent":
-            print(f"🔍 DEBUG: Found createEvent, returning creation response")
+            print("🔍 DEBUG: Found createEvent, returning creation response")
             return "Event created successfully! Is there anything else I can help you with?"
 
     # Check for updateEvent tool calls (if any)
     for tool_call in tool_calls:
         if tool_call.get("function", {}).get("name") == "updateEvent":
-            print(f"🔍 DEBUG: Found updateEvent, returning update response")
+            print("🔍 DEBUG: Found updateEvent, returning update response")
             return "Event updated successfully! Is there anything else I can help you with?"
 
     # Check for deleteEvent tool calls (if any)
     for tool_call in tool_calls:
         if tool_call.get("function", {}).get("name") == "deleteEvent":
-            print(f"🔍 DEBUG: Found deleteEvent, returning deletion response")
+            print("🔍 DEBUG: Found deleteEvent, returning deletion response")
             return "Event deleted successfully! Is there anything else I can help you with?"
 
     # Default fallback
-    print(f"🔍 DEBUG: No matching tool calls, using default fallback")
+    print("🔍 DEBUG: No matching tool calls, using default fallback")
     return "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
 
 
@@ -174,7 +174,7 @@ async def generate_llm_response(request: GenerateRequest):
             tools=tools,
         )
 
-        print(f"🔍 DEBUG: LLM Response received:")
+        print("🔍 DEBUG: LLM Response received:")
         print(f"🔍 DEBUG: - Content: '{llm_response.content[:200]}...'")
         print(f"🔍 DEBUG: - Provider: {llm_response.provider}")
         print(f"🔍 DEBUG: - Model: {llm_response.model}")
@@ -223,14 +223,14 @@ async def generate_llm_response(request: GenerateRequest):
                 )
                 updated_messages.append(tool_results_message)
 
-                print(f"🔍 DEBUG: Tool results added to conversation:")
+                print("🔍 DEBUG: Tool results added to conversation:")
                 print(f"🔍 DEBUG: - Tool results: {tool_results}")
                 print(
                     f"🔍 DEBUG: - Tool results message: {tool_results_message.content}"
                 )
 
                 # Generate final response with tool results
-                print(f"🔍 DEBUG: Calling LLM with updated messages:")
+                print("🔍 DEBUG: Calling LLM with updated messages:")
                 print(f"🔍 DEBUG: - Number of messages: {len(updated_messages)}")
                 for i, msg in enumerate(updated_messages):
                     print(
@@ -244,7 +244,7 @@ async def generate_llm_response(request: GenerateRequest):
                     tools=tools,
                 )
 
-                print(f"🔍 DEBUG: Final response after tool execution:")
+                print("🔍 DEBUG: Final response after tool execution:")
                 print(f"🔍 DEBUG: - Content: '{final_response.content[:200]}...'")
                 print(f"🔍 DEBUG: - Tool calls: {final_response.tool_calls}")
                 print(
@@ -258,7 +258,7 @@ async def generate_llm_response(request: GenerateRequest):
                 if not content:
                     # Fallback for empty responses after tool execution
                     print(
-                        f"🔍 DEBUG: Empty content detected after web search, using context-aware fallback"
+                        "🔍 DEBUG: Empty content detected after web search, using context-aware fallback"
                     )
                     content = get_context_aware_response(llm_response.tool_calls)
                     print(f"🔍 DEBUG: Context-aware fallback content: '{content}'")
@@ -274,7 +274,7 @@ async def generate_llm_response(request: GenerateRequest):
                     tool_calls=final_response.tool_calls,
                 )
 
-                print(f"🔍 DEBUG: Final response (with web search):")
+                print("🔍 DEBUG: Final response (with web search):")
                 print(f"🔍 DEBUG: - Content: '{final_response_obj.content[:200]}...'")
                 print(f"🔍 DEBUG: - Tool calls: {final_response_obj.tool_calls}")
 
@@ -297,12 +297,12 @@ async def generate_llm_response(request: GenerateRequest):
                         for call in llm_response.tool_calls
                     ):
                         print(
-                            f"🔍 DEBUG: Empty content with tool calls, using context-aware fallback"
+                            "🔍 DEBUG: Empty content with tool calls, using context-aware fallback"
                         )
                         content = get_context_aware_response(llm_response.tool_calls)
                     else:
                         print(
-                            f"🔍 DEBUG: Empty content without relevant tool calls, using generic fallback"
+                            "🔍 DEBUG: Empty content without relevant tool calls, using generic fallback"
                         )
                         content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
 
@@ -317,7 +317,7 @@ async def generate_llm_response(request: GenerateRequest):
                     tool_calls=other_calls,
                 )
 
-                print(f"🔍 DEBUG: Final response (no web search):")
+                print("🔍 DEBUG: Final response (no web search):")
                 print(f"🔍 DEBUG: - Content: '{final_response_obj.content[:200]}...'")
                 print(f"🔍 DEBUG: - Tool calls: {final_response_obj.tool_calls}")
 
@@ -339,12 +339,12 @@ async def generate_llm_response(request: GenerateRequest):
                 for call in llm_response.tool_calls
             ):
                 print(
-                    f"🔍 DEBUG: Empty content with tool calls, using context-aware fallback"
+                    "🔍 DEBUG: Empty content with tool calls, using context-aware fallback"
                 )
                 content = get_context_aware_response(llm_response.tool_calls)
             else:
                 print(
-                    f"🔍 DEBUG: Empty content without relevant tool calls, using generic fallback"
+                    "🔍 DEBUG: Empty content without relevant tool calls, using generic fallback"
                 )
                 content = "I didn't quite catch that. Could you please rephrase your question or try asking again? I'm here to help with your calendar and any other questions you might have!"
 
@@ -359,7 +359,7 @@ async def generate_llm_response(request: GenerateRequest):
             tool_calls=llm_response.tool_calls,
         )
 
-        print(f"🔍 DEBUG: Final response (no tool calls):")
+        print("🔍 DEBUG: Final response (no tool calls):")
         print(f"🔍 DEBUG: - Content: '{final_response_obj.content[:200]}...'")
         print(f"🔍 DEBUG: - Tool calls: {final_response_obj.tool_calls}")
 

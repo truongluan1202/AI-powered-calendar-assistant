@@ -6,7 +6,6 @@ import warnings
 from typing import List, Optional, Dict, Any
 import google.genai as genai
 
-from app.core.config import settings
 
 # Suppress warnings from Google Gen AI SDK about non-text parts
 warnings.filterwarnings("ignore", message=".*non-text parts.*", category=UserWarning)
@@ -156,7 +155,7 @@ class GeminiProvider:
                     else:
                         print(f"🔍 DEBUG: Candidate {i} has no content or parts")
             else:
-                print(f"🔍 DEBUG: No candidates in response")
+                print("🔍 DEBUG: No candidates in response")
 
             print(f"🔍 DEBUG: Final content: '{content[:200]}...'")
             print(f"🔍 DEBUG: Final tool_calls: {tool_calls}")

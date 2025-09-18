@@ -1,13 +1,14 @@
 import { useState } from "react";
 import type { Event } from "~/types/chat";
 import EventEditModal from "./EventEditModal";
+import CalendarRangePicker, { type CalendarRange } from "./CalendarRangePicker";
 
 interface CalendarPaneProps {
   events: Event[];
   optimisticEvents: Event[];
   eventsLoading: boolean;
   eventsError: string | null;
-  fetchEvents: () => void;
+  fetchEvents: (timeWindow?: { timeMin: string; timeMax: string }) => void;
   updateEvent: (eventId: string, eventData: any) => Promise<void>;
   deleteEvent: (eventId: string) => Promise<void>;
   onHide?: () => void;
@@ -26,6 +27,13 @@ export default function CalendarPane({
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedRange, setSelectedRange] = useState<CalendarRange>({
+    startDate: null,
+    endDate: null,
+    label: "Select date range",
+    timeMin: "",
+    timeMax: "",
+  });
 
   const handleEditEvent = (event: Event) => {
     setEditingEvent(event);
@@ -60,14 +68,72 @@ export default function CalendarPane({
       console.error("Failed to delete event:", error);
     }
   };
+
+  const handleRangeChange = (range: CalendarRange) => {
+    setSelectedRange(range);
+    if (range.timeMin && range.timeMax) {
+      fetchEvents({ timeMin: range.timeMin, timeMax: range.timeMax });
+    }
+  };
+
+  const handleRefreshEvents = () => {
+    if (selectedRange.timeMin && selectedRange.timeMax) {
+      fetchEvents({
+        timeMin: selectedRange.timeMin,
+        timeMax: selectedRange.timeMax,
+      });
+    } else {
+      // Fallback to default time window if no range is selected
+      fetchEvents({ timeMin: "7 days ago", timeMax: "30 days from now" });
+    }
+  };
   return (
     <div className="chat-panel-transparent relative z-10 flex min-h-0 w-full flex-col py-1 backdrop-blur-sm transition-all duration-300 ease-in-out xl:h-full xl:w-2/7 xl:min-w-2/7">
+      {/* Header */}
       <div className="border-b border-gray-200/60 p-4 sm:p-6 dark:border-gray-700/60">
-        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-          <div className="flex items-center space-x-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
+        <div className="flex items-center space-x-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-gray-700 to-gray-800 dark:from-gray-300 dark:to-gray-400">
+            <svg
+              className="h-4 w-4 text-white dark:text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Calendar
+          </h2>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
+          <div className="flex-1">
+            <CalendarRangePicker
+              selectedRange={selectedRange}
+              onRangeChange={handleRangeChange}
+              isLoading={eventsLoading}
+            />
+          </div>
+          <button
+            onClick={handleRefreshEvents}
+            disabled={eventsLoading}
+            className="hover:shadow-elegant flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-200/60 bg-white/90 px-3 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300/60 hover:bg-white disabled:opacity-50 sm:w-auto dark:border-gray-700/60 dark:bg-gray-700/40 dark:text-gray-300 dark:hover:border-gray-600/60 dark:hover:bg-gray-700/60"
+            title="Refresh events"
+          >
+            {eventsLoading ? (
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+            ) : (
               <svg
-                className="h-4 w-4 text-white dark:text-white"
+                className="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -76,45 +142,11 @@ export default function CalendarPane({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Calendar
-            </h2>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={fetchEvents}
-              disabled={eventsLoading}
-              className="hover:shadow-elegant flex w-full items-center justify-center space-x-2 rounded-lg bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 sm:w-auto dark:from-gray-700 dark:to-gray-800 dark:text-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700"
-            >
-              {eventsLoading ? (
-                <>
-                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
-                  <span>Loading...</span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  {/* <span>Refresh</span> */}
-                </>
-              )}
-            </button>
-          </div>
+            )}
+          </button>
         </div>
       </div>
 
@@ -139,11 +171,21 @@ export default function CalendarPane({
             <p className="mb-2 font-medium">Error loading events</p>
             <p className="mb-4 text-sm">{eventsError}</p>
             <button
-              onClick={fetchEvents}
-              className="hover:shadow-elegant rounded-lg bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:from-gray-500 hover:to-gray-600 dark:from-gray-400 dark:to-gray-500 dark:text-gray-900 dark:hover:from-gray-300 dark:hover:to-gray-400"
+              onClick={handleRefreshEvents}
+              disabled={eventsLoading}
+              className="hover:shadow-elegant rounded-lg bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:from-gray-500 hover:to-gray-600 disabled:opacity-50 dark:from-gray-400 dark:to-gray-500 dark:text-gray-900 dark:hover:from-gray-300 dark:hover:to-gray-400"
             >
-              Try Again
+              {eventsLoading ? "Retrying..." : "Try Again"}
             </button>
+          </div>
+        ) : eventsLoading &&
+          events.length === 0 &&
+          optimisticEvents.length === 0 ? (
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+              <span>Loading events...</span>
+            </div>
           </div>
         ) : events.length === 0 && optimisticEvents.length === 0 ? (
           <div className="py-8 text-center text-gray-500 dark:text-gray-400">

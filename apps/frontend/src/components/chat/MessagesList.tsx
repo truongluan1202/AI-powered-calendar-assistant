@@ -10,6 +10,7 @@ interface MessagesListProps {
   messages: Message[];
   optimisticMessages: OptimisticMessage[];
   currentThreadId: string | null;
+  setCurrentThreadId: (threadId: string | null) => void;
   showConfirmationButtons: Set<string>;
   isSendingRef: React.MutableRefObject<boolean>;
   generateAIResponseMutation: {
@@ -34,6 +35,7 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
       messages,
       optimisticMessages,
       currentThreadId,
+      setCurrentThreadId,
       showConfirmationButtons,
       isSendingRef,
       generateAIResponseMutation,
@@ -64,8 +66,11 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                 />
               </svg>
             </div>
-            <p className="mb-2 text-xl font-semibold text-gray-700 dark:text-gray-300">
-              Welcome to Calendara
+            <p className="mb-2 text-xl font-semibold">
+              Welcome to{" "}
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400">
+                Calendara
+              </span>
             </p>
             <p className="text-gray-500 dark:text-gray-400">
               Select a chat thread or create a new one to start
@@ -89,6 +94,7 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
             }`}
           >
             <div
+              data-message-content
               className={`shadow-refined w-fit max-w-[min(20rem,85vw)] rounded-2xl px-4 py-3 break-words sm:max-w-[min(32rem,80vw)] sm:px-5 ${
                 message.role === "user"
                   ? "bg-gradient-to-r from-gray-700 to-gray-800 text-white dark:from-gray-200 dark:to-gray-300 dark:text-gray-900"

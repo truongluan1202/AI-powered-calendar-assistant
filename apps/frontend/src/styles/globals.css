@@ -335,6 +335,26 @@ body {
   backdrop-filter: blur(8px);
 }
 
+.calendar-dropdown {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(250, 250, 250, 0.95) 100%
+  );
+  border: 1px solid rgba(229, 229, 229, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.dark .calendar-dropdown {
+  background: linear-gradient(
+    135deg,
+    rgba(22, 22, 22, 0.95) 0%,
+    rgba(31, 31, 31, 0.95) 100%
+  );
+  border: 1px solid rgba(42, 42, 42, 0.7);
+  backdrop-filter: blur(8px);
+}
+
 /* Extra transparent chat panels to show background effects */
 .chat-panel-transparent {
   background: linear-gradient(
@@ -343,7 +363,7 @@ body {
     rgba(250, 250, 250, 0.2) 100%
   );
   border: 1px solid rgba(229, 229, 229, 0.2);
-  backdrop-filter: blur(80px);
+  backdrop-filter: blur(16px);
 }
 
 .dark .chat-panel-transparent {
@@ -353,7 +373,7 @@ body {
     rgba(31, 31, 31, 0.2) 100%
   );
   border: 1px solid rgba(42, 42, 42, 0.2);
-  backdrop-filter: blur(80px);
+  backdrop-filter: blur(16px);
 }
 
 /* Transparent hero section to show background effects */

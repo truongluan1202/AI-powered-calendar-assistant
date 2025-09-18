@@ -901,9 +901,55 @@ export default function ChatPage() {
 
   return (
     <div
-      className="relative z-10 flex min-h-full flex-col lg:h-full lg:flex-row"
+      className="relative z-40 flex min-h-full flex-col lg:h-full lg:flex-row"
       style={{ background: "transparent" }}
     >
+      {/* Background Effects - Static Flakes/Stars */}
+      <div className="pointer-events-none fixed inset-0 z-30 overflow-hidden">
+        {/* Static decorative flakes/stars - subtle */}
+        <div className="absolute top-20 left-10 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+        <div className="absolute top-32 right-16 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute top-48 left-1/4 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+        <div className="absolute top-64 right-1/3 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute top-80 left-1/2 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+
+        <div className="absolute top-96 right-20 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+        <div className="absolute top-1/3 left-16 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute top-1/3 right-1/4 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+        <div className="absolute top-1/2 left-8 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+        <div className="absolute top-1/2 right-12 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+
+        <div className="absolute top-2/3 left-1/3 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+        <div className="absolute top-2/3 right-8 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+        <div className="absolute top-3/4 left-20 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute top-3/4 right-1/3 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+        <div className="absolute bottom-20 left-1/4 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+
+        <div className="absolute right-16 bottom-32 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute bottom-48 left-12 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+        <div className="absolute right-1/4 bottom-64 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+        <div className="absolute bottom-80 left-1/2 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute right-8 bottom-96 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+
+        {/* Additional scattered flakes - subtle */}
+        <div className="absolute top-40 left-1/5 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute top-56 right-1/5 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+        <div className="absolute top-72 left-3/4 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute top-88 right-1/2 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+        <div className="absolute top-1/4 left-1/6 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+
+        <div className="absolute top-1/4 right-1/6 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+        <div className="absolute top-1/2 left-2/3 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute top-1/2 right-1/5 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+        <div className="absolute top-3/5 left-1/8 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute top-3/5 right-2/3 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+
+        <div className="absolute top-4/5 left-1/7 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+        <div className="absolute top-4/5 right-1/7 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute bottom-40 left-1/6 h-0.5 w-0.5 rounded-full bg-white/50 dark:bg-white/35"></div>
+        <div className="absolute right-1/6 bottom-56 h-0.5 w-0.5 rounded-full bg-white/45 dark:bg-white/30"></div>
+        <div className="absolute bottom-72 left-2/3 h-1 w-1 rounded-full bg-white/55 dark:bg-white/40"></div>
+      </div>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="animate-in slide-in-from-right-5 fixed top-4 right-4 z-50 duration-300">
@@ -1055,6 +1101,7 @@ export default function ChatPage() {
             messages={messages}
             optimisticMessages={optimisticMessages}
             currentThreadId={currentThreadId}
+            setCurrentThreadId={setCurrentThreadId}
             showConfirmationButtons={showConfirmationButtons}
             isSendingRef={isSendingRef}
             generateAIResponseMutation={generateAIResponseMutation}
