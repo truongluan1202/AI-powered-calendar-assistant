@@ -103,6 +103,11 @@ export const useChat = () => {
         setEditingThread(null);
       }
     },
+    onError: (error) => {
+      console.error("Failed to delete thread:", error);
+      // Show user-friendly error message
+      setToastMessage("Failed to delete thread. Please try again.");
+    },
   });
 
   const updateThreadModelMutation = api.chat.updateThreadModel.useMutation({

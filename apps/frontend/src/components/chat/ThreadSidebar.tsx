@@ -13,6 +13,7 @@ interface ThreadSidebarProps {
   deleteThread: (threadId: string) => void;
   startEditing: (threadId: string, currentTitle: string) => void;
   cancelEditing: () => void;
+  isDeletingThread?: boolean;
   onHide?: () => void;
 }
 
@@ -29,6 +30,7 @@ export default function ThreadSidebar({
   deleteThread,
   startEditing,
   cancelEditing,
+  isDeletingThread = false,
   onHide,
 }: ThreadSidebarProps) {
   return (
@@ -180,9 +182,12 @@ export default function ThreadSidebar({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteThread(thread.id);
+                          if (!isDeletingThread) {
+                            deleteThread(thread.id);
+                          }
                         }}
-                        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                        disabled={isDeletingThread}
+                        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <svg
                           className="h-3.5 w-3.5"

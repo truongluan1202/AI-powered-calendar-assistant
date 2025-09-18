@@ -832,6 +832,9 @@ export default function ChatPage() {
   };
 
   const deleteThread = (threadId: string) => {
+    if (deleteThreadMutation.isPending) {
+      return; // Prevent multiple delete calls
+    }
     deleteThreadMutation.mutate({ threadId });
   };
 
@@ -1012,6 +1015,7 @@ export default function ChatPage() {
           deleteThread={deleteThread}
           startEditing={startEditing}
           cancelEditing={cancelEditing}
+          isDeletingThread={deleteThreadMutation.isPending}
           onHide={() => setShowThreads(false)}
         />
       )}

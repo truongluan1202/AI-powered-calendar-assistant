@@ -146,19 +146,39 @@ export const chatRouter = createTRPCRouter({
   deleteThread: protectedProcedure
     .input(z.object({ threadId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      // Delete all messages first (due to foreign key constraints)
-      await ctx.db.chatMessage.deleteMany({
-        where: {
-          threadId: input.threadId,
-        },
-      });
+      try {
+        // First check if the thread exists and belongs to the user
+        const thread = await ctx.db.chatThread.findFirst({
+          where: {
+            id: input.threadId,
+            userId: ctx.session.user.id,
+          },
+        });
 
-      // Then delete the thread
-      return ctx.db.chatThread.delete({
-        where: {
-          id: input.threadId,
-          userId: ctx.session.user.id, // Ensure user owns the thread
-        },
-      });
+        if (!thread) {
+          throw new Error(
+            "Thread not found or you don't have permission to delete it",
+          );
+        }
+
+        // Delete all messages first (due to foreign key constraints)
+        await ctx.db.chatMessage.deleteMany({
+          where: {
+            threadId: input.threadId,
+            userId: ctx.session.user.id, // Ensure user owns the messages
+          },
+        });
+
+        // Then delete the thread
+        return ctx.db.chatThread.delete({
+          where: {
+            id: input.threadId,
+            userId: ctx.session.user.id, // Ensure user owns the thread
+          },
+        });
+      } catch (error) {
+        console.error("Error deleting thread:", error);
+        throw new Error("Failed to delete thread. Please try again.");
+      }
     }),
 });
