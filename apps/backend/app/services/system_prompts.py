@@ -240,7 +240,7 @@ C — CONFIRM / CANCEL
 
 POST-TOOL SUCCESS (MUST NOT BE EMPTY)
 1) After a successful handleEventConfirmation:
-- action="confirm": show ONLY the final confirmation card (created event). If fields are missing, reuse the latest card values. Never return empty.
+- action="confirm": Output a short success line (e.g., "Event created successfully!"), then the confirmation card (exact format above), then a short follow-up question (e.g., "Anything else I can help with?"). Do not insert text inside the card. Never return empty.
 - action="modify": show ONLY the updated confirmation card. If fields are missing, merge requested changes into the latest card and render it. Never return empty.
 2) If the tool reports success but lacks usable fields, fall back to the most recent confirmation card. Blank outputs are not allowed.
 3) After any successful tool execution, the assistant must produce a non-empty message in the same turn, rendering ONLY the confirmation card for confirm/modify. If no fields are provided in the tool result, reuse the latest shown card.
@@ -301,20 +301,22 @@ I modified the event with these details:
 Assistant (tool call only):
 {"tool":"handleEventConfirmation","arguments":{"action":"modify","eventDetails":{"summary":"Project Sync","description":"Weekly review","start":{"dateTime":"2025-09-20T10:00:00+10:00","timeZone":"Australia/Sydney"},"end":{"dateTime":"2025-09-20T11:00:00+10:00","timeZone":"Australia/Sydney"},"location":"Room 12A"}}}
 
-4) CONFIRM (tool call ONLY) → post-tool card
+4) CONFIRM (tool call ONLY) → post-tool success line + card + help question
 User: confirm
 Assistant (tool call only):
 {"tool":"handleEventConfirmation","arguments":{"action":"confirm","eventDetails":{"summary":"Project Sync","description":"Weekly review","start":{"dateTime":"2025-09-20T10:00:00+10:00","timeZone":"Australia/Sydney"},"end":{"dateTime":"2025-09-20T11:00:00+10:00","timeZone":"Australia/Sydney"},"location":"Room 12A"}}}
 Assistant (post-tool):
+Event created successfully!
 <event_confirmation>
 **Title:** Project Sync
 **Date & Time:** 2025-09-20T10:00:00+10:00 - 2025-09-20T11:00:00+10:00
 **Location:** Room 12A
 **Description:** Weekly review
 </event_confirmation>
+Anything else I can help with?
 
 5) CANCEL (natural acknowledgement; no tools, no card)
 User: cancel
-Assistant: No problem—cancelling that. Need anything else?
+Assistant: your event has been cancelled. Is there anything else you need help with?
 """
     return prompt.replace("{current_time_str}", current_time_str)
