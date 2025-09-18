@@ -92,11 +92,7 @@ def get_context_aware_response(tool_calls):
                 print(f"🔍 DEBUG: Error parsing webSearch args: {e}")
                 return "🔍 I found some information for you. Let me know if you'd like to create an event based on this!"
 
-    # Check for createEvent tool calls (if any)
-    for tool_call in tool_calls:
-        if tool_call.get("function", {}).get("name") == "createEvent":
-            print("🔍 DEBUG: Found createEvent, returning creation response")
-            return "Event created successfully! Is there anything else I can help you with?"
+    # Note: createEvent tool is not available - all event creation goes through handleEventConfirmation
 
     # Check for updateEvent tool calls (if any)
     for tool_call in tool_calls:
@@ -166,6 +162,34 @@ async def generate_llm_response(request: GenerateRequest):
         # Get tools for the provider
         tools = get_tools_for_provider(request.model_provider)
 
+        # Check if this is a request with tool results from frontend
+        has_tool_results = any(msg.role == "tool" for msg in llm_messages)
+
+        if has_tool_results:
+            # Extract tool results to check for confirmation cards
+            tool_message = next(msg for msg in llm_messages if msg.role == "tool")
+            try:
+                tool_results = json.loads(tool_message.content)
+                print(f"🔍 DEBUG: Processing tool results: {tool_results}")
+
+                # Look for handleEventConfirmation results with confirmation card content
+                for result in tool_results:
+                    if result.get("success") and result.get("content"):
+                        content = result.get("content", "")
+                        # Check if this looks like a confirmation card
+                        if "**Title:**" in content and "**Date & Time:**" in content:
+                            print(f"🔍 DEBUG: Found confirmation card in tool results")
+                            return GenerateResponse(
+                                content=content,
+                                provider="gemini",
+                                model=request.model_name,
+                                usage={},
+                                tool_calls=None,
+                            )
+            except (json.JSONDecodeError, KeyError, StopIteration) as e:
+                print(f"🔍 DEBUG: Error processing tool results: {e}")
+                # Continue with normal processing
+
         # Use unified response generation for all queries
         llm_response = await llm_service.generate_response(
             provider=request.model_provider,
@@ -188,55 +212,28 @@ async def generate_llm_response(request: GenerateRequest):
                 for call in llm_response.tool_calls
                 if call["function"]["name"] == "webSearch"
             ]
-            other_calls = [
-                call
-                for call in llm_response.tool_calls
-                if call["function"]["name"] != "webSearch"
-            ]
 
             if web_search_calls:
-                # Handle webSearch tool calls internally
+                # Execute webSearch tool calls and generate response in one step
                 tool_results = []
-                updated_messages = llm_messages.copy()
-
-                # Add the assistant's response with tool calls
-                updated_messages.append(
-                    LLMMessage(
-                        role="assistant",
-                        content=llm_response.content,
-                        tool_calls=llm_response.tool_calls,
-                    )
-                )
-
-                # Execute webSearch tool calls
                 for tool_call in web_search_calls:
                     try:
                         result = await llm_service.execute_tool_call(tool_call)
                         tool_results.append(result)
                     except NotImplementedError:
-                        # Tool not implemented in backend, skip it
                         pass
 
-                # Add tool results to conversation
-                tool_results_message = LLMMessage(
-                    role="tool", content=json.dumps(tool_results)
-                )
-                updated_messages.append(tool_results_message)
+                # Build updated messages efficiently
+                updated_messages = llm_messages + [
+                    LLMMessage(
+                        role="assistant",
+                        content=llm_response.content,
+                        tool_calls=llm_response.tool_calls,
+                    ),
+                    LLMMessage(role="tool", content=json.dumps(tool_results)),
+                ]
 
-                print("🔍 DEBUG: Tool results added to conversation:")
-                print(f"🔍 DEBUG: - Tool results: {tool_results}")
-                print(
-                    f"🔍 DEBUG: - Tool results message: {tool_results_message.content}"
-                )
-
-                # Generate final response with tool results
-                print("🔍 DEBUG: Calling LLM with updated messages:")
-                print(f"🔍 DEBUG: - Number of messages: {len(updated_messages)}")
-                for i, msg in enumerate(updated_messages):
-                    print(
-                        f"🔍 DEBUG: - Message {i}: {msg.role} - {msg.content[:100]}..."
-                    )
-
+                # Generate final response
                 final_response = await llm_service.generate_response(
                     provider=request.model_provider,
                     messages=updated_messages,
@@ -244,26 +241,12 @@ async def generate_llm_response(request: GenerateRequest):
                     tools=tools,
                 )
 
-                print("🔍 DEBUG: Final response after tool execution:")
-                print(f"🔍 DEBUG: - Content: '{final_response.content[:200]}...'")
-                print(f"🔍 DEBUG: - Tool calls: {final_response.tool_calls}")
-                print(
-                    f"🔍 DEBUG: - Content length: {len(final_response.content) if final_response.content else 0}"
-                )
-
-                # Ensure we never return empty content
+                # Ensure content exists
                 content = (
-                    final_response.content.strip() if final_response.content else ""
+                    final_response.content.strip()
+                    if final_response.content
+                    else get_context_aware_response(llm_response.tool_calls)
                 )
-                if not content:
-                    # Fallback for empty responses after tool execution
-                    print(
-                        "🔍 DEBUG: Empty content detected after web search, using context-aware fallback"
-                    )
-                    content = get_context_aware_response(llm_response.tool_calls)
-                    print(f"🔍 DEBUG: Context-aware fallback content: '{content}'")
-
-                # Clean up any remaining old confirmation format elements
                 content = clean_confirmation_format(content)
 
                 final_response_obj = GenerateResponse(
@@ -271,7 +254,7 @@ async def generate_llm_response(request: GenerateRequest):
                     provider=final_response.provider,
                     model=final_response.model,
                     usage=final_response.usage,
-                    tool_calls=final_response.tool_calls,
+                    tool_calls=llm_response.tool_calls,  # Include original tool calls for frontend optimistic messaging
                 )
 
                 print("🔍 DEBUG: Final response (with web search):")
@@ -281,6 +264,11 @@ async def generate_llm_response(request: GenerateRequest):
                 return final_response_obj
             else:
                 # Only non-webSearch tool calls, return them for frontend handling
+                other_calls = [
+                    call
+                    for call in llm_response.tool_calls
+                    if call["function"]["name"] != "webSearch"
+                ]
                 # Ensure we never return empty content
                 content = llm_response.content.strip() if llm_response.content else ""
                 if not content:

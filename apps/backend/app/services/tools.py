@@ -92,7 +92,7 @@ CALENDAR_TOOLS = [
                     },
                     "eventDetails": {
                         "type": "object",
-                        "description": "The event details to create (only needed when action is 'confirm')",
+                        "description": "The event details to create (required when action is 'confirm') or show (required when action is 'modify')",
                         "properties": {
                             "summary": {
                                 "type": "string",
@@ -137,12 +137,8 @@ CALENDAR_TOOLS = [
                         },
                         "required": ["summary", "start", "end"],
                     },
-                    "modifications": {
-                        "type": "string",
-                        "description": "Details of what the user wants to modify (only needed when action is 'modify')",
-                    },
                 },
-                "required": ["action"],
+                "required": ["action", "eventDetails"],
             },
         },
     },

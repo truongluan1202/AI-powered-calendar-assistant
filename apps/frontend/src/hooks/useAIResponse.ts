@@ -49,110 +49,36 @@ export const useAIResponse = ({
       if (data.toolCalls && data.toolCalls.length > 0) {
         setIsExecutingTool(true);
 
-        // Check if it's a calendar-related tool call
-        const hasCalendarTool = data.toolCalls.some(
-          (call: any) =>
-            call.function.name === "getEvents" ||
-            call.function.name === "createEvent" ||
-            call.function.name === "handleEventConfirmation",
-        );
+        // Determine tool type and update optimistic message once
+        const toolType = data.toolCalls.find((call: any) =>
+          ["getEvents", "handleEventConfirmation", "webSearch"].includes(
+            call.function.name,
+          ),
+        )?.function.name;
 
-        if (hasCalendarTool) {
+        if (toolType) {
+          const messages = {
+            getEvents: "Accessing Google Calendar now...",
+            handleEventConfirmation: "Accessing Google Calendar now...",
+            webSearch: "🔍 Using WebSearch to find information...",
+          };
+
           setOptimisticMessages((prev) =>
             prev.map((msg) =>
               msg.role === "assistant" && msg.isOptimistic
                 ? {
                     ...msg,
-                    content: "Accessing Google Calendar now...",
+                    content: messages[toolType as keyof typeof messages],
                     isLoading: true,
                   }
                 : msg,
             ),
           );
         }
-
-        const createEventCalls = data.toolCalls.filter(
-          (call: any) => call.function.name === "createEvent",
-        );
 
         const confirmationCalls = data.toolCalls.filter(
           (call: any) => call.function.name === "handleEventConfirmation",
         );
-
-        if (createEventCalls.length > 0) {
-          setOptimisticMessages((prev) =>
-            prev.map((msg) =>
-              msg.role === "assistant" && msg.isOptimistic
-                ? {
-                    ...msg,
-                    content: "I am creating an event for you...",
-                    isLoading: true,
-                  }
-                : msg,
-            ),
-          );
-
-          createEventCalls.forEach((call: any) => {
-            try {
-              const eventData = JSON.parse(call.function.arguments || "{}");
-              addOptimisticEvent({
-                summary: eventData.summary || "New Event",
-                description: eventData.description || "",
-                start: eventData.start?.dateTime || eventData.start,
-                end: eventData.end?.dateTime || eventData.end,
-                location: eventData.location || "",
-              });
-            } catch (error) {
-              console.error("Failed to parse event data:", error);
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              tomorrow.setHours(14, 0, 0, 0);
-
-              const endTime = new Date(tomorrow);
-              endTime.setHours(
-                tomorrow.getHours() + 1,
-                tomorrow.getMinutes(),
-                0,
-                0,
-              );
-
-              addOptimisticEvent({
-                summary: "New Event",
-                description: "Creating event...",
-                start: tomorrow.toISOString(),
-                end: endTime.toISOString(),
-                location: "",
-              });
-            }
-          });
-
-          const createEventResults =
-            data.toolResults?.filter((result: any) =>
-              createEventCalls.some(
-                (call: any) => call.id === result.tool_call_id,
-              ),
-            ) || [];
-
-          createEventResults.forEach((result: any) => {
-            if (result.success) {
-              const eventData = JSON.parse(result.content);
-              setEvents((prev) => [...prev, eventData]);
-              setOptimisticEvents((prev) => prev.slice(0, -1));
-              // Show toast only when Google Calendar API call succeeds
-              showToast("✅ Event created successfully!", setToastMessage);
-              setOptimisticEvents((prev) =>
-                prev.map((event) => ({ ...event, isConfirmed: true })),
-              );
-            } else {
-              setOptimisticEvents((prev) => prev.slice(0, -1));
-              // Show error toast when API call fails
-              showToast(
-                "❌ Failed to create event. Please try again.",
-                setToastMessage,
-              );
-            }
-          });
-        }
 
         if (confirmationCalls.length > 0) {
           confirmationCalls.forEach((call: any) => {
@@ -185,26 +111,67 @@ export const useAIResponse = ({
                     location: args.eventDetails.location || "",
                   });
                 }
+
+                // Clear the loading flag after 2 seconds, but keep the optimistic event
+                setTimeout(() => {
+                  setOptimisticMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.role === "assistant" && msg.isOptimistic
+                        ? {
+                            ...msg,
+                            content: "Event created successfully!",
+                            isLoading: false,
+                          }
+                        : msg,
+                    ),
+                  );
+
+                  // Also mark the optimistic event as confirmed to remove the "Creating..." flag
+                  setOptimisticEvents((prev) =>
+                    prev.map((event) => ({ ...event, isConfirmed: true })),
+                  );
+                }, 2000);
               } else if (action === "modify") {
+                // For modify action, we only show the confirmation card - no other processing
                 setOptimisticMessages((prev) =>
                   prev.map((msg) =>
                     msg.role === "assistant" && msg.isOptimistic
                       ? {
                           ...msg,
-                          content:
-                            "I understand you'd like to modify the event. Let me update the details...",
-                          isLoading: false,
+                          content: "Updating event details...",
+                          isLoading: true,
                         }
                       : msg,
                   ),
                 );
+
+                // Clear the loading flag after 2 seconds for modify actions
+                setTimeout(() => {
+                  setOptimisticMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.role === "assistant" && msg.isOptimistic
+                        ? {
+                            ...msg,
+                            content: "Event details updated!",
+                            isLoading: false,
+                          }
+                        : msg,
+                    ),
+                  );
+
+                  // Also mark the optimistic event as confirmed to remove the "Creating..." flag
+                  setOptimisticEvents((prev) =>
+                    prev.map((event) => ({ ...event, isConfirmed: true })),
+                  );
+                }, 2000);
               }
             } catch (error) {
               console.error("Failed to parse confirmation call:", error);
             }
           });
 
-          // Handle confirmation results
+          // Handle confirmation results - but with new backend flow, this may not execute
+          // The backend now handles tool results directly and returns confirmation cards
           const confirmationResults =
             data.toolResults?.filter((result: any) =>
               confirmationCalls.some(
@@ -212,33 +179,59 @@ export const useAIResponse = ({
               ),
             ) || [];
 
-          confirmationResults.forEach((result: any) => {
-            if (result.success) {
-              try {
-                const args = JSON.parse(
-                  confirmationCalls.find(
-                    (call: any) => call.id === result.tool_call_id,
-                  )?.function.arguments || "{}",
-                );
-
-                if (args.action === "confirm") {
-                  // Show toast only when Google Calendar API call succeeds
-                  showToast("✅ Event created successfully!", setToastMessage);
-                  setOptimisticEvents((prev) =>
-                    prev.map((event) => ({ ...event, isConfirmed: true })),
+          // Only process tool results if they exist (old flow)
+          if (confirmationResults.length > 0) {
+            confirmationResults.forEach((result: any) => {
+              if (result.success) {
+                try {
+                  const args = JSON.parse(
+                    confirmationCalls.find(
+                      (call: any) => call.id === result.tool_call_id,
+                    )?.function.arguments || "{}",
                   );
+
+                  if (args.action === "confirm") {
+                    // Show toast only when Google Calendar API call succeeds
+                    showToast(
+                      "✅ Event created successfully!",
+                      setToastMessage,
+                    );
+                    // Don't set isConfirmed here - let the timeout handle it to ensure users see the flag
+                  } else if (args.action === "modify") {
+                    // For modify action, the result.content contains the confirmation card
+                    console.log(
+                      "Modify action completed, confirmation card should be displayed",
+                    );
+                  }
+                } catch (error) {
+                  console.error("Failed to parse confirmation result:", error);
                 }
-              } catch (error) {
-                console.error("Failed to parse confirmation result:", error);
+              } else {
+                // Show error toast when API call fails
+                showToast(
+                  "❌ Failed to create event. Please try again.",
+                  setToastMessage,
+                );
               }
-            } else {
-              // Show error toast when API call fails
-              showToast(
-                "❌ Failed to create event. Please try again.",
-                setToastMessage,
-              );
+            });
+          } else {
+            // New backend flow: Check if we have confirmation calls but no tool results
+            // This means the backend handled the tool results directly
+            const hasConfirmAction = confirmationCalls.some((call: any) => {
+              try {
+                const args = JSON.parse(call.function.arguments || "{}");
+                return args.action === "confirm";
+              } catch {
+                return false;
+              }
+            });
+
+            if (hasConfirmAction) {
+              // Backend handled the confirm action, show success toast
+              showToast("✅ Event created successfully!", setToastMessage);
+              // Don't set isConfirmed here - let the timeout handle it to ensure users see the flag
             }
-          });
+          }
         }
       }
 
@@ -281,18 +274,24 @@ export const useAIResponse = ({
             );
 
             streamText(data.content || "", () => {
-              // Only show confirmation buttons if there were no successful event creation tool calls
+              // Show confirmation buttons for modify actions, but not for confirm actions (which create events)
               const hasSuccessfulEventCreation = data.toolCalls?.some(
                 (call: any) =>
-                  call.function.name === "createEvent" ||
-                  (call.function.name === "handleEventConfirmation" &&
-                    JSON.parse(call.function.arguments || "{}").action ===
-                      "confirm"),
+                  call.function.name === "handleEventConfirmation" &&
+                  JSON.parse(call.function.arguments || "{}").action ===
+                    "confirm",
+              );
+
+              const hasModifyAction = data.toolCalls?.some(
+                (call: any) =>
+                  call.function.name === "handleEventConfirmation" &&
+                  JSON.parse(call.function.arguments || "{}").action ===
+                    "modify",
               );
 
               if (
                 isConfirmationMessage(data.content || "") &&
-                !hasSuccessfulEventCreation
+                (hasModifyAction || !hasSuccessfulEventCreation)
               ) {
                 setTimeout(() => {
                   setShowConfirmationButtons((prev) => {

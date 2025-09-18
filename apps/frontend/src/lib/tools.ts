@@ -255,8 +255,6 @@ export class ToolExecutor {
       switch (name) {
         case "getEvents":
           return await this.getEvents(args);
-        case "createEvent":
-          return await this.createEvent(args);
         case "handleEventConfirmation":
           return await this.handleEventConfirmation(args);
         case "updateEvent":
@@ -605,7 +603,7 @@ export class ToolExecutor {
 
   private async handleEventConfirmation(args: any): Promise<ToolResult> {
     try {
-      const { action, eventDetails, modifications } = args;
+      const { action, eventDetails } = args;
 
       switch (action) {
         case "confirm":
@@ -621,44 +619,47 @@ export class ToolExecutor {
           return await this.createEvent(eventDetails);
 
         case "modify":
-          if (eventDetails) {
-            // If eventDetails are provided, present them for confirmation
-            const { summary, start, end, location, description } = eventDetails;
-
-            // Format the event details for display
-            const formatDateTime = (dateTime: string) => {
-              const date = new Date(dateTime);
-              return date.toLocaleString("en-AU", {
-                timeZone: "Australia/Sydney",
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              });
-            };
-
-            let content = `**Title:** ${summary || "Untitled Event"}\n`;
-            content += `**Date & Time:** ${formatDateTime(start?.dateTime || start)} - ${formatDateTime(end?.dateTime || end)}\n`;
-            content += `**Location:** ${location || "None"}\n`;
-            if (description) {
-              content += `**Description:** ${description}\n`;
-            }
-
+          // CRITICAL: For modify action, we MUST always provide eventDetails to create a confirmation card
+          if (!eventDetails) {
             return {
               tool_call_id: "",
-              content: content,
-              success: true,
-            };
-          } else {
-            return {
-              tool_call_id: "",
-              content: `User wants to modify: ${modifications || "No specific modifications mentioned"}. Please present updated event details for confirmation.`,
-              success: true,
+              content: "",
+              success: false,
+              error:
+                "Event details are required for modify action to create confirmation card",
             };
           }
+
+          // If eventDetails are provided, present them for confirmation
+          const { summary, start, end, location, description } = eventDetails;
+
+          // Format the event details for display
+          const formatDateTime = (dateTime: string) => {
+            const date = new Date(dateTime);
+            return date.toLocaleString("en-AU", {
+              timeZone: "Australia/Sydney",
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            });
+          };
+
+          let content = `**Title:** ${summary || "Untitled Event"}\n`;
+          content += `**Date & Time:** ${formatDateTime(start?.dateTime || start)} - ${formatDateTime(end?.dateTime || end)}\n`;
+          content += `**Location:** ${location || "None"}\n`;
+          if (description) {
+            content += `**Description:** ${description}\n`;
+          }
+
+          return {
+            tool_call_id: "",
+            content: content,
+            success: true,
+          };
 
         default:
           return {

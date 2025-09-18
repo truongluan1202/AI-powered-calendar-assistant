@@ -103,10 +103,38 @@ export default function ChatPage() {
         const [startTime, endTime] = dateTimeText.split(" - ");
         if (startTime && endTime) {
           try {
-            // Try to parse the dates - handle different formats
-            // This could be either ISO format or local time format
-            const startDate = new Date(startTime.trim());
-            const endDate = new Date(endTime.trim());
+            // Parse the human-readable Australian date format
+            // Format: "Monday, 20 January 2025 at 2:00 PM"
+            const parseAustralianDate = (dateStr: string) => {
+              try {
+                // Remove "at" and clean up the string
+                const cleanStr = dateStr.trim().replace(" at ", " ");
+
+                // Try to parse using Intl.DateTimeFormat with Australian locale
+                // This should handle the Australian date format properly
+                const date = new Date(cleanStr);
+
+                if (!isNaN(date.getTime())) {
+                  return date;
+                }
+
+                // Fallback: try to parse by removing day name and using a more standard format
+                const withoutDay = cleanStr.replace(/^[A-Za-z]+,\s*/, "");
+                const fallbackDate = new Date(withoutDay);
+
+                if (!isNaN(fallbackDate.getTime())) {
+                  return fallbackDate;
+                }
+
+                throw new Error("Could not parse date");
+              } catch (error) {
+                console.error("Date parsing error:", error);
+                throw error;
+              }
+            };
+
+            const startDate = parseAustralianDate(startTime.trim());
+            const endDate = parseAustralianDate(endTime.trim());
 
             if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
               // Always convert to ISO format for backend
@@ -118,6 +146,8 @@ export default function ChatPage() {
                 dateTime: endDate.toISOString(),
                 timeZone: "Australia/Sydney",
               };
+            } else {
+              throw new Error("Invalid date format");
             }
           } catch (error) {
             console.error("Error parsing dates:", error);
