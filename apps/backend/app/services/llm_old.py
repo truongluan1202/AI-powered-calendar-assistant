@@ -417,7 +417,7 @@ class LLMService:
         system_message = LLMMessage(
             role="system",
             content=(
-                "CRITICAL: When showing event confirmation details, NEVER use '---', '📅 Event Details:', or 'Please confirm:' text. Use ONLY the format: **Title:**, **Date & Time:**, **Location:**, **Description:**, **Attendees:**\n\n"
+                "CRITICAL: When showing event confirmation details, NEVER use '---', '📅 Event Details:', or 'Please confirm:' text. Use ONLY the format: **Title:**, **Date & Time:**, **Location:**, **Description:**\n\n"
                 "You are an AI calendar assistant. Help users manage their schedules, "
                 "create events, and answer questions about their calendar. "
                 "You have access to tools to get calendar events, create new events, and search the web. "
@@ -457,7 +457,6 @@ class LLMService:
                 "**Date & Time:** [Start Time] - [End Time]\n"
                 "**Location:** [Location if specified]\n"
                 "**Description:** [Description if specified]\n"
-                "**Attendees:** [Attendees if specified]\n"
                 "\n"
                 "Examples of when to use getEvents tool:\n"
                 "- 'What's on my calendar tomorrow?' → getEvents with timeMin=tomorrow, timeMax=day after tomorrow\n"
@@ -571,18 +570,6 @@ class LLMService:
                                 "location": {
                                     "type": "string",
                                     "description": "Geographic location of the event",
-                                },
-                                "attendees": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "email": {
-                                                "type": "string",
-                                                "description": "Attendee's email address",
-                                            },
-                                        },
-                                    },
                                 },
                             },
                         },
@@ -712,7 +699,7 @@ class LLMService:
         system_message = LLMMessage(
             role="system",
             content=(
-                "CRITICAL: When showing event confirmation details, NEVER use '---', '📅 Event Details:', or 'Please confirm:' text. Use ONLY the format: **Title:**, **Date & Time:**, **Location:**, **Description:**, **Attendees:**\n\n"
+                "CRITICAL: When showing event confirmation details, NEVER use '---', '📅 Event Details:', or 'Please confirm:' text. Use ONLY the format: **Title:**, **Date & Time:**, **Location:**, **Description:**\n\n"
                 "You are an AI calendar assistant. Your primary function is to help users with their calendar.\n"
                 "Keep the tone polite and professional. Ask for more help after finishing a task. Always be helpful and concise. Behave accordingly to the user's tone and context, especially if they are angry or rude.\n\n"
                 "You MUST use tools to answer calendar questions - never try to answer without tools.\n\n"
@@ -754,7 +741,6 @@ class LLMService:
                 "   **Date & Time:** [Updated Start Time] - [Updated End Time]\n"
                 "   **Location:** [Updated Location if specified]\n"
                 "   **Description:** [Updated Description if specified]\n"
-                "   **Attendees:** [Updated Attendees if specified]\n"
                 "7. Do NOT add any other text to the confirmation form - simply display the provided details in the proper format\n\n"
                 "CONFIRMATION FORMAT:\n"
                 "When asking for confirmation, use this EXACT format (do NOT include '---', '📅 Event Details:', or 'Please confirm:' text):\n"
@@ -762,14 +748,13 @@ class LLMService:
                 "**Date & Time:** [Start Time] - [End Time]\n"
                 "**Location:** [Location if specified]\n"
                 "**Description:** [Description if specified]\n"
-                "**Attendees:** [Attendees if specified]\n\n"
                 "HANDLING VAGUE REQUESTS - AUTO-COMPLETE WITH REASONABLE DEFAULTS:\n"
                 "When users make vague requests, intelligently fill in missing details:\n\n"
                 "• Missing title/summary: Use 'Meeting with [person]' or 'Meeting'\n"
                 "• Missing duration: Assume 1 hour duration (end time = start time + 1 hour)\n"
                 "• Missing description: Leave empty or add 'Scheduled via AI assistant'\n"
                 "• Missing location: Leave empty\n"
-                "• Missing attendees: Leave empty\n\n"
+                "\n"
                 "SPECIFIC EXAMPLES:\n"
                 "User: 'What's my next event?'\n"
                 "→ Use getEvents with timeMin=now, maxResults=1\n\n"

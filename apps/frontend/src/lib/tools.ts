@@ -334,7 +334,6 @@ export class ToolExecutor {
         end: event.end?.dateTime || event.end?.date,
         location: event.location,
         description: event.description,
-        attendees: event.attendees?.map((a: any) => a.email).join(", ") || "",
       }));
 
       return {
@@ -398,7 +397,6 @@ export class ToolExecutor {
           timeZone: args.end?.timeZone || userTimezone,
         },
         location: args.location,
-        attendees: args.attendees,
       };
 
       const response = await makeGoogleApiCall(
@@ -455,7 +453,6 @@ export class ToolExecutor {
         start,
         end,
         location,
-        attendees,
       } = args;
 
       if (!eventId) {
@@ -496,7 +493,6 @@ export class ToolExecutor {
       if (summary) eventData.summary = summary;
       if (description !== undefined) eventData.description = description;
       if (location !== undefined) eventData.location = location;
-      if (attendees !== undefined) eventData.attendees = attendees;
 
       if (startTime) {
         eventData.start = {
@@ -627,8 +623,7 @@ export class ToolExecutor {
         case "modify":
           if (eventDetails) {
             // If eventDetails are provided, present them for confirmation
-            const { summary, start, end, location, description, attendees } =
-              eventDetails;
+            const { summary, start, end, location, description } = eventDetails;
 
             // Format the event details for display
             const formatDateTime = (dateTime: string) => {
@@ -650,14 +645,6 @@ export class ToolExecutor {
             content += `**Location:** ${location || "None"}\n`;
             if (description) {
               content += `**Description:** ${description}\n`;
-            }
-            if (attendees && attendees.length > 0) {
-              const attendeeEmails = attendees
-                .map((a: any) => a.email)
-                .join(", ");
-              content += `**Attendees:** ${attendeeEmails}\n`;
-            } else {
-              content += `**Attendees:** None\n`;
             }
 
             return {

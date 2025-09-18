@@ -143,7 +143,6 @@ export default function EventConfirmationModal({
         dateTime: endDateTime.toISOString(),
         timeZone: timeZone,
       },
-      attendees: eventDetails.attendees || [],
     };
 
     onConfirm(updatedEventData);

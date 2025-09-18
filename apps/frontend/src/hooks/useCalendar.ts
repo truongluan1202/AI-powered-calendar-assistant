@@ -132,7 +132,6 @@ export const useCalendar = ({
       end: eventData.end?.dateTime || eventData.end,
       location: eventData.location,
       description: eventData.description,
-      attendees: eventData.attendees,
       isOptimistic: true,
     };
     setOptimisticEvents((prev) => [...prev, optimisticEvent]);

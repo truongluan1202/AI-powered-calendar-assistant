@@ -138,20 +138,6 @@ export default function ChatPage() {
         eventDetails.location = line.replace("**Location:**", "").trim();
       } else if (line.includes("**Description:**")) {
         eventDetails.description = line.replace("**Description:**", "").trim();
-      } else if (line.includes("**Attendees:**")) {
-        const attendeesText = line.replace("**Attendees:**", "").trim();
-        if (
-          attendeesText &&
-          attendeesText !== "None" &&
-          attendeesText !== "N/A"
-        ) {
-          // Parse attendees - this is a simplified parser
-          const emails = attendeesText
-            .split(",")
-            .map((email) => email.trim())
-            .filter((email) => email);
-          eventDetails.attendees = emails.map((email) => ({ email }));
-        }
       }
     }
 
@@ -168,7 +154,6 @@ export default function ChatPage() {
     // Extract the date/time line and ensure all fields are present
     const lines = content.split("\n");
     let hasLocation = false;
-    let hasAttendees = false;
 
     const formattedLines = lines.map((line) => {
       if (line.includes("**Date & Time:**")) {
@@ -202,8 +187,6 @@ export default function ChatPage() {
         }
       } else if (line.includes("**Location:**")) {
         hasLocation = true;
-      } else if (line.includes("**Attendees:**")) {
-        hasAttendees = true;
       }
       return line;
     });
@@ -218,10 +201,6 @@ export default function ChatPage() {
     if (!hasLocation) {
       result.splice(insertIndex, 0, "**Location:** None");
       insertIndex++;
-    }
-
-    if (!hasAttendees) {
-      result.splice(insertIndex, 0, "**Attendees:** None");
     }
 
     return result.join("\n");
@@ -259,16 +238,6 @@ export default function ChatPage() {
       message += `\n**Description:** ${eventDetails.description}`;
     }
 
-    // Always include attendees field
-    if (eventDetails.attendees && eventDetails.attendees.length > 0) {
-      const attendeeEmails = eventDetails.attendees
-        .map((a: any) => a.email)
-        .join(", ");
-      message += `\n**Attendees:** ${attendeeEmails}`;
-    } else {
-      message += `\n**Attendees:** None`;
-    }
-
     return message;
   };
 
@@ -304,12 +273,6 @@ export default function ChatPage() {
       details.push(`**Location:** ${eventDetails.location}`);
     if (eventDetails.description)
       details.push(`**Description:** ${eventDetails.description}`);
-    if (eventDetails.attendees && eventDetails.attendees.length > 0) {
-      const attendeeEmails = eventDetails.attendees
-        .map((a: any) => a.email || a)
-        .join(", ");
-      details.push(`**Attendees:** ${attendeeEmails}`);
-    }
 
     return details.join("\n");
   };

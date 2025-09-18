@@ -21,7 +21,6 @@ export interface Event {
   end: string;
   location?: string;
   description?: string;
-  attendees?: any[];
   isOptimistic?: boolean;
   isConfirmed?: boolean;
   tmpId?: string;

@@ -138,8 +138,18 @@ export const useAIResponse = ({
               const eventData = JSON.parse(result.content);
               setEvents((prev) => [...prev, eventData]);
               setOptimisticEvents((prev) => prev.slice(0, -1));
+              // Show toast only when Google Calendar API call succeeds
+              showToast("✅ Event created successfully!", setToastMessage);
+              setOptimisticEvents((prev) =>
+                prev.map((event) => ({ ...event, isConfirmed: true })),
+              );
             } else {
               setOptimisticEvents((prev) => prev.slice(0, -1));
+              // Show error toast when API call fails
+              showToast(
+                "❌ Failed to create event. Please try again.",
+                setToastMessage,
+              );
             }
           });
         }
@@ -191,6 +201,42 @@ export const useAIResponse = ({
               }
             } catch (error) {
               console.error("Failed to parse confirmation call:", error);
+            }
+          });
+
+          // Handle confirmation results
+          const confirmationResults =
+            data.toolResults?.filter((result: any) =>
+              confirmationCalls.some(
+                (call: any) => call.id === result.tool_call_id,
+              ),
+            ) || [];
+
+          confirmationResults.forEach((result: any) => {
+            if (result.success) {
+              try {
+                const args = JSON.parse(
+                  confirmationCalls.find(
+                    (call: any) => call.id === result.tool_call_id,
+                  )?.function.arguments || "{}",
+                );
+
+                if (args.action === "confirm") {
+                  // Show toast only when Google Calendar API call succeeds
+                  showToast("✅ Event created successfully!", setToastMessage);
+                  setOptimisticEvents((prev) =>
+                    prev.map((event) => ({ ...event, isConfirmed: true })),
+                  );
+                }
+              } catch (error) {
+                console.error("Failed to parse confirmation result:", error);
+              }
+            } else {
+              // Show error toast when API call fails
+              showToast(
+                "❌ Failed to create event. Please try again.",
+                setToastMessage,
+              );
             }
           });
         }
@@ -262,21 +308,6 @@ export const useAIResponse = ({
                 setTimeout(() => focusInput(), 100);
               });
             });
-
-            if (
-              data.toolCalls?.some(
-                (call: any) =>
-                  call.function.name === "createEvent" ||
-                  (call.function.name === "handleEventConfirmation" &&
-                    JSON.parse(call.function.arguments || "{}").action ===
-                      "confirm"),
-              )
-            ) {
-              showToast("✅ Event created successfully!", setToastMessage);
-              setOptimisticEvents((prev) =>
-                prev.map((event) => ({ ...event, isConfirmed: true })),
-              );
-            }
           }, 2000);
         } else {
           setOptimisticMessages((prev) =>
@@ -310,33 +341,6 @@ export const useAIResponse = ({
         }
       } else {
         if (data.toolCalls && data.toolCalls.length > 0) {
-          if (
-            data.toolCalls.some(
-              (call: any) =>
-                call.function.name === "createEvent" ||
-                (call.function.name === "handleEventConfirmation" &&
-                  JSON.parse(call.function.arguments || "{}").action ===
-                    "confirm"),
-            )
-          ) {
-            setOptimisticMessages((prev) =>
-              prev.map((msg) =>
-                msg.role === "assistant" && msg.isOptimistic
-                  ? {
-                      ...msg,
-                      content: "Event created successfully!",
-                      isLoading: false,
-                    }
-                  : msg,
-              ),
-            );
-
-            showToast("✅ Event created successfully!", setToastMessage);
-            setOptimisticEvents((prev) =>
-              prev.map((event) => ({ ...event, isConfirmed: true })),
-            );
-          }
-
           setTimeout(() => {
             void refetchMessages().then(() => {
               setOptimisticMessages([]);

@@ -5,7 +5,6 @@ export const isConfirmationMessage = (content: string) => {
     "**Date & Time:**",
     "**Location:**",
     "**Description:**",
-    "**Attendees:**",
   ];
   return confirmationKeywords.some((keyword) => content.includes(keyword));
 };

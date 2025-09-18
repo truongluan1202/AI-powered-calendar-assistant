@@ -134,24 +134,6 @@ CALENDAR_TOOLS = [
                                 "type": "string",
                                 "description": "Geographic location of the event",
                             },
-                            "attendees": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "email": {
-                                            "type": "string",
-                                            "description": "Attendee's email address",
-                                        },
-                                        "displayName": {
-                                            "type": "string",
-                                            "description": "Attendee's name",
-                                        },
-                                    },
-                                    "required": ["email"],
-                                },
-                                "description": "List of attendees for the event",
-                            },
                         },
                         "required": ["summary", "start", "end"],
                     },
@@ -218,19 +200,6 @@ CALENDAR_TOOLS = [
                     "location": {
                         "type": "string",
                         "description": "Updated location of the event",
-                    },
-                    "attendees": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "email": {
-                                    "type": "string",
-                                    "description": "Email address of the attendee",
-                                },
-                            },
-                        },
-                        "description": "Updated list of attendees",
                     },
                 },
                 "required": ["eventId"],
