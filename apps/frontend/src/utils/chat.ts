@@ -29,9 +29,25 @@ export const mergeMessages = (
   const serverMessageIds = new Set(serverMessages.map((msg) => msg.id));
 
   // Remove optimistic messages that have been replaced by server messages
-  const filteredOptimistic = optimisticMessages.filter(
-    (msg) => !msg.isOptimistic || !serverMessageIds.has(msg.id),
-  );
+  // Also filter out any optimistic messages that are duplicates of server messages
+  const filteredOptimistic = optimisticMessages.filter((msg) => {
+    if (!msg.isOptimistic) return true; // Keep non-optimistic messages
+    if (serverMessageIds.has(msg.id)) return false; // Remove if server has this ID
+
+    // Additional check: if we have a server message with the same content and role,
+    // remove the optimistic one to prevent duplicates
+    const hasDuplicate = serverMessages.some(
+      (serverMsg) =>
+        serverMsg.role === msg.role &&
+        serverMsg.content === msg.content &&
+        Math.abs(
+          new Date(serverMsg.createdAt).getTime() -
+            new Date(msg.createdAt).getTime(),
+        ) < 5000, // Within 5 seconds
+    );
+
+    return !hasDuplicate;
+  });
 
   return [...serverMessages, ...filteredOptimistic];
 };

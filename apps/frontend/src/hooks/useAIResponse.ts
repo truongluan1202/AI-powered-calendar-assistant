@@ -250,10 +250,13 @@ export const useAIResponse = ({
           ),
         );
 
-        void refetchMessages().then(() => {
-          setOptimisticMessages([]);
-          setTimeout(() => focusInput(), 100);
-        });
+        // Wait for optimistic message to finish before refetching
+        setTimeout(() => {
+          void refetchMessages().then(() => {
+            setOptimisticMessages([]);
+            setTimeout(() => focusInput(), 100);
+          });
+        }, 1000); // Give time for the optimistic message to be displayed
         return;
       }
 
@@ -302,10 +305,13 @@ export const useAIResponse = ({
                 }, 100);
               }
 
-              void refetchMessages().then(() => {
-                setOptimisticMessages([]);
-                setTimeout(() => focusInput(), 100);
-              });
+              // Wait a bit more to ensure streaming is completely finished before refetching
+              setTimeout(() => {
+                void refetchMessages().then(() => {
+                  setOptimisticMessages([]);
+                  setTimeout(() => focusInput(), 100);
+                });
+              }, 500); // Additional delay to ensure streaming completes
             });
           }, 2000);
         } else {
@@ -332,10 +338,13 @@ export const useAIResponse = ({
               }, 100);
             }
 
-            void refetchMessages().then(() => {
-              setOptimisticMessages([]);
-              setTimeout(() => focusInput(), 100);
-            });
+            // Wait a bit more to ensure streaming is completely finished before refetching
+            setTimeout(() => {
+              void refetchMessages().then(() => {
+                setOptimisticMessages([]);
+                setTimeout(() => focusInput(), 100);
+              });
+            }, 500); // Additional delay to ensure streaming completes
           });
         }
       } else {
@@ -440,7 +449,10 @@ export const useAIResponse = ({
       } else {
         clearInterval(interval);
         setIsStreaming(false);
-        onComplete?.();
+        // Add a small delay to ensure the final character is rendered
+        setTimeout(() => {
+          onComplete?.();
+        }, 50);
       }
     }, 20);
   };
